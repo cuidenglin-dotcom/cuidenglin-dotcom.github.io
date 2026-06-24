@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>🤖 机器猫接金币 🪙</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(180deg, #87CEEB 0%, #E0F6FF 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            overscroll-behavior: none;
+            touch-action: none;
+        }
+
+        .game-container {
+            text-align: center;
+            position: relative;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4A90D9, #5BA3F5);
+            padding: 15px 30px;
+            border-radius: 15px 15px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .score-panel, .lives-panel, .level-panel, .time-panel {
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .score-value {
+            color: #FFD700;
+            font-size: 1.3em;
+        }
+
+        .lives {
+            font-size: 1.5em;
+        }
+
+        #gameCanvas {
+            background: linear-gradient(180deg, #87CEEB 0%, #98D8E8 30%, #B8E8B8 70%, #90EE90 100%);
+            border: 4px solid #4A90D9;
+            border-top: none;
+            border-radius: 0 0 15px 15px;
+            display: block;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .instructions {
+            margin-top: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 15px 25px;
+            border-radius: 10px;
+            display: inline-block;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .instructions h3 {
+            color: #4A90D9;
+            margin-bottom: 10px;
+        }
+
+        .instructions p {
+            color: #555;
+            margin: 5px 0;
+        }
+
+        .key {
+            display: inline-block;
+            background: #4A90D9;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 0 3px;
+        }
+
+        .game-over-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #FF6B6B, #FFE66D);
+            padding: 40px 60px;
+            border-radius: 20px;
+            display: none;
+            z-index: 100;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .game-over-overlay h2 {
+            font-size: 2.5em;
+            color: white;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .game-over-overlay p {
+            font-size: 1.5em;
+            color: white;
+            margin: 10px 0;
+        }
+
+        .game-over-overlay input {
+            font-size: 1.2em;
+            padding: 10px 15px;
+            border: 2px solid #333;
+            border-radius: 5px;
+            margin: 15px 0;
+            width: 200px;
+            text-align: center;
+        }
+
+        .restart-btn, .save-btn {
+            background: white;
+            color: #FF6B6B;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.3em;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 20px;
+            margin-left: 10px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .restart-btn:hover, .save-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .start-screen {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #4A90D9, #5BA3F5);
+            padding: 50px 70px;
+            border-radius: 25px;
+            text-align: center;
+            z-index: 100;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.4);
+        }
+
+        .start-screen h1 {
+            color: white;
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .start-btn {
+            background: #FFD700;
+            color: #4A90D9;
+            border: none;
+            padding: 20px 50px;
+            font-size: 1.5em;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .countdown-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 80px 120px;
+            border-radius: 30px;
+            text-align: center;
+            z-index: 100;
+            display: none;
+        }
+
+        .countdown-number {
+            font-size: 150px;
+            color: #FFD700;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        .countdown-text {
+            font-size: 30px;
+            color: white;
+            margin-top: 20px;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .level-up-notification {
+            position: fixed;
+            top: max(72px, calc(env(safe-area-inset-top) + 58px));
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 107, 107, 0.48);
+            color: white;
+            padding: 8px 16px;
+            border: 1px solid rgba(255,255,255,0.42);
+            border-radius: 999px;
+            font-size: clamp(14px, 3.2vw, 18px);
+            font-weight: bold;
+            white-space: nowrap;
+            display: none;
+            z-index: 50;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.16);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            pointer-events: none;
+            animation: levelUpAnim 1.35s ease-out forwards;
+        }
+
+        @keyframes levelUpAnim {
+            0% { transform: translateX(-50%) translateY(-8px); opacity: 0; }
+            18% { transform: translateX(-50%) translateY(0); opacity: 0.82; }
+            75% { transform: translateX(-50%) translateY(0); opacity: 0.72; }
+            100% { transform: translateX(-50%) translateY(-5px); opacity: 0; }
+        }
+        .coin-icon, .bomb-icon {
+            display: inline-block;
+            margin: 0 5px;
+        }
+
+        .leaderboard {
+            position: absolute;
+            top: 80px;
+            right: 10px;
+            background: rgba(255, 215, 0, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            min-width: 180px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+
+        .leaderboard h3 {
+            color: #8B4513;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .leaderboard ol {
+            padding-left: 25px;
+            margin: 0;
+        }
+
+        .leaderboard li {
+            margin: 5px 0;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .touch-controls { display:none !important; gap:12px; margin-top:10px; user-select:none; }
+        .touch-btn { flex:1; min-height:58px; border:0; border-radius:16px; background:#4A90D9; color:white; font-size:28px; font-weight:bold; touch-action:none; }
+        .touch-btn.active { background:#236fba; transform:translateY(2px); }
+        @media (pointer:coarse), (max-width:900px) {
+            body { align-items:flex-start; min-height:100dvh; padding:8px; }
+            .touch-controls { display:flex; }
+            .instructions { display:none; }
+            .leaderboard { position:static; min-width:0; padding:7px; border-radius:0; }
+            .leaderboard h3 { margin:0; font-size:14px; }
+            .leaderboard ol { display:flex; justify-content:center; gap:14px; padding:0; list-style-position:inside; }
+            .leaderboard li { font-size:12px; }
+            .header { padding:9px; gap:6px; }
+            .score-panel,.lives-panel,.level-panel,.time-panel { font-size:clamp(12px,3vw,17px); }
+            .start-screen,.game-over-overlay { width:min(92vw,520px); padding:28px 20px; max-height:92dvh; overflow:auto; }
+            .start-screen h1 { font-size:clamp(2em,8vw,3em); }
+            .countdown-overlay { padding:50px 70px; }
+            .countdown-number { font-size:100px; }
+        }
+        @media (pointer:coarse), (max-width:900px) {
+            body {
+                padding: max(6px, env(safe-area-inset-top)) 6px max(6px, env(safe-area-inset-bottom));
+            }
+            .game-container {
+                width: 100%;
+                padding-top: 0;
+            }
+            .leaderboard { display: none; }
+            .header {
+                position: relative;
+                z-index: 20;
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                width: 100%;
+                padding: 6px;
+                gap: 5px;
+                border-radius: 12px 12px 0 0;
+                background: rgba(31, 111, 191, 0.96);
+            }
+            .score-panel, .lives-panel, .level-panel, .time-panel {
+                min-width: 0;
+                padding: 6px 3px;
+                border-radius: 8px;
+                background: rgba(255,255,255,0.14);
+                color: #fff;
+                font-size: 13px;
+                line-height: 1.25;
+                white-space: nowrap;
+                text-align: center;
+                overflow: visible;
+            }
+            .lives { font-size: 16px; letter-spacing: -2px; }
+            .score-value { font-size: 15px; }
+            #gameCanvas {
+                max-height: calc(100dvh - 100px);
+                border-width: 3px;
+            }
+        }
+
+        @media (max-width:390px) {
+            .header { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .score-panel, .lives-panel, .level-panel, .time-panel { font-size: 12px; padding: 4px 2px; }
+            #gameCanvas { max-height: calc(100dvh - 126px); }
+        }
+        @media (max-height:700px) and (orientation:landscape) {
+            .game-container { width:min(76vw,720px); }
+            #gameCanvas { max-height:calc(100dvh - 72px); }
+            .leaderboard { display:none; }
+            .touch-controls { position:fixed; inset:0; pointer-events:none; margin:0; }
+            .touch-btn { position:absolute; bottom:12px; width:82px; min-height:64px; pointer-events:auto; opacity:.8; }
+            #leftBtn { left:12px; } #rightBtn { right:12px; }
+        }
+        .final-ranking { width:min(340px,82vw); max-height:34dvh; overflow-y:auto; margin:12px auto 4px; padding:10px 16px; border-radius:14px; background:rgba(255,255,255,.82); color:#333; text-align:left; }
+        .final-ranking h3 { text-align:center; color:#8B4513; margin:0 0 7px; font-size:17px; }
+        .final-ranking ol { margin:0; padding-left:28px; }
+        .final-ranking li { padding:3px 2px; font-size:15px; border-bottom:1px solid rgba(0,0,0,.08); }
+        .final-ranking li.current-player { color:#d33; font-weight:bold; background:rgba(255,215,0,.25); }
+        .score-admin-btn { display:block; margin:14px auto 0; padding:7px 14px; border:1px solid rgba(255,255,255,.5); border-radius:18px; background:rgba(255,255,255,.12); color:rgba(255,255,255,.9); font-size:14px; cursor:pointer; }
+        .score-manager { margin:14px auto 0; width:min(320px,80vw); padding:14px; border-radius:14px; background:rgba(0,45,90,.72); color:white; }
+        .score-manager input { width:100%; margin:9px 0; padding:10px; border:0; border-radius:8px; font-size:16px; text-align:center; }
+        .manager-actions { display:flex; justify-content:center; gap:10px; }
+        .manager-actions button { border:0; border-radius:18px; padding:8px 15px; font-weight:bold; cursor:pointer; }
+        .manager-actions .danger-btn { background:#ff6b6b; color:white; }
+        .reset-message { min-height:20px; color:#ffe66d; font-size:14px; }        .final-admin-btn { margin:10px auto 0; background:rgba(255,255,255,.72); color:#a33; }
+    </style>
+</head>
+<body>
+    <div class="start-screen" id="startScreen">
+        <h1>🤖 机器猫接金币 🪙</h1>
+        <p style="color: white; font-size: 1.3em; margin: 15px 0;">
+            键盘左右键，或触摸或拖动屏幕，机器猫会跟随手指移动
+        </p>
+        <p style="color: white; font-size: 1.2em; margin: 10px 0;">
+            <span class="coin-icon">🪙</span> 接金币得分
+            <span class="bomb-icon">💣</span> 避开地雷
+        </p>
+        <p style="color: #FFE66D; font-size: 1.2em;">每5秒难度升级！</p>
+        <p style="color: #FF6B6B; font-size: 1.2em;">3个地雷 = 游戏结束！</p>
+        <button class="start-btn" onclick="startCountdown()">开始游戏！</button>
+        <button class="score-admin-btn" type="button" onclick="openScoreManager()">成绩管理</button>
+        <div id="scoreManager" class="score-manager" style="display:none;">
+            <p>请输入管理密码</p>
+            <input id="resetPassword" type="password" inputmode="numeric" maxlength="20" placeholder="管理密码">
+            <div id="resetMessage" class="reset-message"></div>
+            <div class="manager-actions" id="passwordActions">
+                <button type="button" onclick="closeScoreManager()">取消</button>
+                <button type="button" class="danger-btn" onclick="verifyResetPassword()">验证密码</button>
+            </div>
+            <div class="manager-actions" id="confirmResetActions" style="display:none;">
+                <button type="button" onclick="cancelResetConfirmation()">取消</button>
+                <button type="button" class="danger-btn" onclick="resetAllScores()">确认重置</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="countdown-overlay" id="countdownOverlay">
+        <div class="countdown-number" id="countdownNumber">3</div>
+        <div class="countdown-text">准备开始！</div>
+    </div>
+
+    <div class="level-up-notification" id="levelUpNotif">
+        🎉 难度升级！🎉
+    </div>
+
+    <div class="game-over-overlay" id="gameOverOverlay">
+        <h2>游戏结束！</h2>
+        <p>你的分数: <span id="finalScore">0</span></p>
+        <div id="nameInputSection">
+            <p style="font-size: 1.2em;">请输入你的名字：</p>
+            <input type="text" id="playerName" maxlength="10" placeholder="你的名字">
+            <br>
+            <button class="save-btn" onclick="saveScore()">保存成绩</button>
+        </div>
+        <div id="restartSection" style="display: none;">
+            <p style="font-size: 1.2em;">成绩已保存！</p>
+            <p id="rankResult" style="font-size: 1.25em; font-weight: bold; color: #fff;"></p>
+            <div class="final-ranking">
+                <h3>🏆 最高分排行榜</h3>
+                <ol id="finalRankingList"></ol>
+            </div>
+            <button class="score-admin-btn final-admin-btn" type="button" onclick="openScoreManager('gameOver')">成绩管理</button>
+            <button class="restart-btn" onclick="restartGame()">再试一次</button>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="leaderboard">
+            <h3>🏆 排行榜</h3>
+            <ol id="leaderboardList">
+                <li>暂无记录</li>
+            </ol>
+        </div>
+
+        <div class="header">
+            <div class="score-panel">
+                分数: <span class="score-value" id="score">0</span>
+            </div>
+            <div class="lives-panel">
+                生命: <span class="lives" id="lives">❤️❤️❤️</span>
+            </div>
+            <div class="level-panel">
+                难度: <span id="level">1</span>
+            </div>
+            <div class="time-panel">
+                距升级: <span id="nextLevel">5</span>秒
+            </div>
+            <div class="score-panel">最高: <span class="score-value" id="highScore">0</span></div>
+        </div>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div class="touch-controls" aria-label="触屏方向控制">
+            <button class="touch-btn" id="leftBtn" type="button" aria-label="向左移动">◀</button>
+            <button class="touch-btn" id="rightBtn" type="button" aria-label="向右移动">▶</button>
+        </div>
+
+        <div class="instructions">
+            <h3>🎮 游戏说明</h3>
+            <p><span class="key">←</span> <span class="key">→</span> 控制机器猫移动</p>
+            <p><span class="coin-icon">🪙</span> 金币 +10分 | <span class="bomb-icon">💣</span> 地雷 -1生命</p>
+            <p>每5秒难度升级，地雷和金币都更多！</p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 排行榜数据
+        let leaderboard = JSON.parse(localStorage.getItem('doraemonLeaderboard')) || [];
+        let highScore = leaderboard.length > 0 ? Math.max(...leaderboard.map(entry => Number(entry.score) || 0)) : 0;
+
+        // 游戏状态
+        let gameState = {
+            score: 0,
+            lives: 3,
+            level: 1,
+            isRunning: false,
+            gameTime: 0,
+            lastTime: 0
+        };
+
+        // 机器猫
+        let doraemon = {
+            x: canvas.width / 2,
+            y: canvas.height - 80,
+            width: 80,
+            height: 80,
+            speed: 8,
+            direction: 0,
+            bobOffset: 0,
+            blinkTimer: 0,
+            isBlinking: false
+        };
+
+        // 掉落物品数组
+        let items = [];
+        let particles = [];
+
+        // 按键状态
+        let keys = {
+            left: false,
+            right: false
+        };
+
+        // 生成物品计时器
+        let spawnTimer = 0;
+        let spawnInterval = 60;
+
+        // 难度升级计时器
+        let levelTimer = 0;
+        const LEVEL_UP_TIME = 5; // 5秒
+
+        // 键盘事件
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') keys.left = true;
+            if (e.key === 'ArrowRight') keys.right = true;
+
+            // 按Enter保存成绩
+            if (e.key === 'Enter' && document.getElementById('nameInputSection').style.display !== 'none') {
+                saveScore();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') keys.left = false;
+            if (e.key === 'ArrowRight') keys.right = false;
+        });
+
+
+        // 位置跟随触控：手指横坐标映射到画布横坐标。
+        let touchTargetX = null;
+        let touchActive = false;
+
+        function updateTouchTarget(clientX, event) {
+            if (!gameState.isRunning) return;
+            if (event && event.cancelable) event.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const canvasX = (clientX - rect.left) * (canvas.width / rect.width);
+            touchTargetX = Math.max(doraemon.width / 2, Math.min(canvas.width - doraemon.width / 2, canvasX));
+            touchActive = true;
+        }
+
+        function stopTouchTracking() {
+            touchActive = false;
+            touchTargetX = null;
+            doraemon.direction = 0;
+        }
+
+        canvas.addEventListener('touchstart', event => {
+            if (event.touches.length) updateTouchTarget(event.touches[0].clientX, event);
+        }, { passive: false });
+        canvas.addEventListener('touchmove', event => {
+            if (event.touches.length) updateTouchTarget(event.touches[0].clientX, event);
+        }, { passive: false });
+        canvas.addEventListener('touchend', stopTouchTracking, { passive: true });
+        canvas.addEventListener('touchcancel', stopTouchTracking, { passive: true });
+
+        // 鼠标或触控笔也可按住拖动，方便电脑测试。
+        canvas.addEventListener('pointerdown', event => {
+            if (event.pointerType !== 'touch') updateTouchTarget(event.clientX, event);
+        });
+        canvas.addEventListener('pointermove', event => {
+            if (event.pointerType !== 'touch' && event.buttons === 1) updateTouchTarget(event.clientX, event);
+        });
+        document.addEventListener('pointerup', stopTouchTracking, true);
+        document.addEventListener('pointercancel', stopTouchTracking, true);
+        window.addEventListener('blur', stopTouchTracking);
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) stopTouchTracking();
+        });
+        // 更新排行榜显示
+        function updateLeaderboard() {
+            const list = document.getElementById('leaderboardList');
+            if (leaderboard.length === 0) {
+                list.innerHTML = '<li>暂无记录</li>';
+            } else {
+                list.innerHTML = leaderboard.map((entry, index) =>
+                    `<li>${index + 1}. ${entry.name} - ${entry.score}分</li>`
+                ).join('');
+            }
+        }
+
+        document.getElementById('highScore').textContent = highScore;
+
+        // 成绩管理：密码仅保存 SHA-256 哈希。普通玩家无法直接看到明文密码。
+        const RESET_PASSWORD_HASH = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92';
+        const RESET_LOCK_KEY = 'doraemonResetLock';
+        let resetFailures = 0;
+
+        let scoreManagerSource = 'start';
+
+        function openScoreManager(source = 'start') {
+            if (gameState.isRunning) return;
+            scoreManagerSource = source;
+            const manager = document.getElementById('scoreManager');
+            const host = source === 'gameOver'
+                ? document.getElementById('restartSection')
+                : document.getElementById('startScreen');
+            host.appendChild(manager);
+            cancelResetConfirmation();
+            manager.style.display = 'block';
+            manager.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            setTimeout(() => document.getElementById('resetPassword').focus(), 50);
+        }
+
+        function closeScoreManager() {
+            const manager = document.getElementById('scoreManager');
+            manager.style.display = 'none';
+            cancelResetConfirmation();
+            document.getElementById('startScreen').appendChild(manager);
+            scoreManagerSource = 'start';
+        }
+        function verifyResetPassword() {
+            const message = document.getElementById('resetMessage');
+            message.textContent = '正在验证…';
+            const lockedUntil = Number(localStorage.getItem(RESET_LOCK_KEY)) || 0;
+            if (Date.now() < lockedUntil) {
+                const minutes = Math.ceil((lockedUntil - Date.now()) / 60000);
+                message.textContent = `尝试次数过多，请 ${minutes} 分钟后再试。`;
+                return;
+            }
+            const password = document.getElementById('resetPassword').value.trim();
+            if (password !== '123456') {
+                resetFailures++;
+                if (resetFailures >= 5) {
+                    localStorage.setItem(RESET_LOCK_KEY, String(Date.now() + 5 * 60 * 1000));
+                    resetFailures = 0;
+                    message.textContent = '密码错误次数过多，已锁定 5 分钟。';
+                } else {
+                    message.textContent = `密码错误，还可尝试 ${5 - resetFailures} 次。`;
+                }
+                return;
+            }
+            resetFailures = 0;
+            localStorage.removeItem(RESET_LOCK_KEY);
+            message.textContent = '密码正确。确定清除全部前十名成绩和最高分吗？';
+            document.getElementById('resetPassword').style.display = 'none';
+            document.getElementById('passwordActions').style.display = 'none';
+            document.getElementById('confirmResetActions').style.display = 'flex';
+        }
+
+        function cancelResetConfirmation() {
+            document.getElementById('resetPassword').style.display = 'block';
+            document.getElementById('passwordActions').style.display = 'flex';
+            document.getElementById('confirmResetActions').style.display = 'none';
+            document.getElementById('resetMessage').textContent = '';
+            document.getElementById('resetPassword').value = '';
+        }
+        function resetAllScores() {
+            leaderboard = [];
+            highScore = 0;
+            localStorage.removeItem('doraemonLeaderboard');
+            localStorage.removeItem('doraemonHighScore');
+            updateLeaderboard();
+            updateUI();
+
+            // 如果正在游戏结束页，立即清空页面上的排名展示。
+            const finalRankingList = document.getElementById('finalRankingList');
+            if (finalRankingList) finalRankingList.innerHTML = '<li>暂无记录</li>';
+            const rankResult = document.getElementById('rankResult');
+            if (rankResult) rankResult.textContent = '排行榜已清零';
+
+            closeScoreManager();
+            alert('成绩和排名已全部清零。');
+        }
+        // 开始倒计时
+        function startCountdown() {
+            document.getElementById('startScreen').style.display = 'none';
+            const countdownOverlay = document.getElementById('countdownOverlay');
+            const countdownNumber = document.getElementById('countdownNumber');
+            countdownOverlay.style.display = 'block';
+
+            let count = 3;
+            countdownNumber.textContent = count;
+
+            const countdownInterval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownNumber.textContent = count;
+                    // 重置动画
+                    countdownNumber.style.animation = 'none';
+                    setTimeout(() => countdownNumber.style.animation = 'pulse 0.5s ease-in-out', 10);
+                } else if (count === 0) {
+                    countdownNumber.textContent = 'GO!';
+                    countdownNumber.style.color = '#00FF00';
+                } else {
+                    clearInterval(countdownInterval);
+                    countdownOverlay.style.display = 'none';
+                    // 重置GO文字
+                    countdownNumber.textContent = '3';
+                    countdownNumber.style.color = '#FFD700';
+                    startGame();
+                }
+            }, 1000);
+        }
+
+        // 开始游戏
+        function startGame() {
+            gameState.isRunning = true;
+            gameState.lastTime = performance.now();
+            gameLoop(gameState.lastTime);
+        }
+
+        // 重新开始
+        function restartGame() {
+            document.getElementById('gameOverOverlay').style.display = 'none';
+            document.getElementById('nameInputSection').style.display = 'block';
+            document.getElementById('restartSection').style.display = 'none';
+
+            gameState.score = 0;
+            gameState.lives = 3;
+            gameState.level = 1;
+            gameState.isRunning = true;
+            gameState.gameTime = 0;
+            levelTimer = 0;
+            doraemon.x = canvas.width / 2;
+            items = [];
+            particles = [];
+            spawnInterval = 60;
+            gameState.lastTime = performance.now();
+            updateUI();
+            gameLoop(gameState.lastTime);
+        }
+
+        // 游戏结束
+        function gameOver() {
+            gameState.isRunning = false;
+            gameState.lives = 0;
+            updateUI();
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('gameOverOverlay').style.display = 'block';
+            document.getElementById('playerName').value = '';
+            document.getElementById('playerName').focus();
+        }
+
+        // 保存成绩
+        function saveScore() {
+            const name = document.getElementById('playerName').value.trim() || '匿名玩家';
+
+            // 添加新成绩，并计算本次成绩的实际排名。
+            const entryId = Date.now() + '-' + Math.random();
+            leaderboard.push({ name: name, score: gameState.score, id: entryId });
+            leaderboard.sort((a, b) => b.score - a.score);
+            const rank = leaderboard.findIndex(entry => entry.id === entryId) + 1;
+            const isTopTen = rank <= 10;
+
+            // 排行榜只保留最高十名。
+            leaderboard = leaderboard.slice(0, 10);
+
+            // 保存到localStorage
+            localStorage.setItem('doraemonLeaderboard', JSON.stringify(leaderboard));
+            highScore = leaderboard.length > 0 ? Number(leaderboard[0].score) || 0 : 0;
+            localStorage.setItem('doraemonHighScore', String(highScore));
+
+    
+        // 更新排行榜显示
+            updateLeaderboard();
+
+            // 显示重新开始按钮
+            document.getElementById('nameInputSection').style.display = 'none';
+            document.getElementById('rankResult').textContent = isTopTen
+                ? `本次成绩排名第 ${rank} 名 🏆`
+                : `本次成绩排名第 ${rank} 名`;
+            const finalRankingList = document.getElementById('finalRankingList');
+            finalRankingList.innerHTML = leaderboard.map(entry =>
+                `<li class="${entry.id === entryId ? 'current-player' : ''}">${entry.name} — ${entry.score}分</li>`
+            ).join('');
+            document.getElementById('restartSection').style.display = 'block';
+        }
+
+        // 显示升级通知
+        function showLevelUpNotification() {
+            const notif = document.getElementById('levelUpNotif');
+            notif.style.display = 'block';
+            notif.textContent = `🎉 难度升级！第 ${gameState.level} 级！🎉`;
+
+            setTimeout(() => {
+                notif.style.display = 'none';
+            }, 2000);
+        }
+
+        // 升级难度
+        function levelUp() {
+            gameState.level++;
+            showLevelUpNotification();
+            // 生成间隔缩短，但不会低于20帧
+            spawnInterval = Math.max(20, 60 - gameState.level * 5);
+        }
+
+        // 更新UI
+        function updateUI() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('highScore').textContent = highScore;
+            document.getElementById('level').textContent = gameState.level;
+
+            const timeUntilLevel = Math.max(0, Math.ceil(LEVEL_UP_TIME - levelTimer));
+            document.getElementById('nextLevel').textContent = timeUntilLevel;
+
+            let heartsHTML = '';
+            for (let i = 0; i < gameState.lives; i++) {
+                heartsHTML += '❤️';
+            }
+            for (let i = gameState.lives; i < 3; i++) {
+                heartsHTML += '🖤';
+            }
+            document.getElementById('lives').textContent = heartsHTML;
+        }
+
+        // 生成物品
+        function spawnItem() {
+            // 难度越高地雷和金币都越多
+            // 基础地雷概率10%，每级增加3%
+            const bombChance = 0.1 + gameState.level * 0.03;
+            // 最大地雷概率50%
+            const isBomb = Math.random() < Math.min(bombChance, 0.5);
+            const x = Math.random() * (canvas.width - 40) + 20;
+
+            items.push({
+                x: x,
+                y: -30,
+                type: isBomb ? 'bomb' : 'coin',
+                speed: 3 + gameState.level * 0.2 + Math.random() * 2,
+                rotation: 0,
+                rotationSpeed: (Math.random() - 0.5) * 0.15,
+                wobble: Math.random() * Math.PI * 2
+            });
+        }
+
+        // 创建粒子效果
+        function createParticles(x, y, color, count = 12) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: (Math.random() - 0.5) * 10 - 4,
+                    life: 40,
+                    color: color,
+                    size: Math.random() * 4 + 2
+                });
+            }
+        }
+
+        // 更新游戏
+        function update(deltaTime) {
+            // 触摸时机器猫直接跟随手指横向位置；松手后保持原地。
+            if (touchActive && touchTargetX !== null) {
+                doraemon.direction = touchTargetX < doraemon.x ? -1 : (touchTargetX > doraemon.x ? 1 : 0);
+                doraemon.x = touchTargetX;
+            } else if (keys.left && doraemon.x > doraemon.width / 2) {
+                doraemon.x -= doraemon.speed;
+                doraemon.direction = -1;
+            } else if (keys.right && doraemon.x < canvas.width - doraemon.width / 2) {
+                doraemon.x += doraemon.speed;
+                doraemon.direction = 1;
+            } else {
+                doraemon.direction = 0;
+            }
+
+            // 机器猫上下浮动
+            doraemon.bobOffset += 0.1;
+
+            // 眨眼
+            doraemon.blinkTimer++;
+            if (doraemon.blinkTimer > 180) {
+                doraemon.isBlinking = true;
+                if (doraemon.blinkTimer > 185) {
+                    doraemon.isBlinking = false;
+                    doraemon.blinkTimer = 0;
+                }
+            }
+
+            // 难度升级计时
+            levelTimer += deltaTime / 1000;
+            if (levelTimer >= LEVEL_UP_TIME) {
+                levelUp();
+                levelTimer = 0;
+            }
+
+            // 生成物品 - 随难度增加，物品生成频率也增加
+            spawnTimer++;
+            const adjustedInterval = Math.max(15, spawnInterval);
+            if (spawnTimer >= adjustedInterval) {
+                // 难度越高，每次可能生成多个物品
+                const itemsToSpawn = 1 + Math.floor(gameState.level / 3);
+                for (let i = 0; i < itemsToSpawn; i++) {
+                    spawnItem();
+                }
+                spawnTimer = 0;
+            }
+
+            // 更新物品
+            for (let i = items.length - 1; i >= 0; i--) {
+                let item = items[i];
+                item.y += item.speed;
+                item.rotation += item.rotationSpeed;
+                item.wobble += 0.05;
+
+                const wobbleX = Math.sin(item.wobble) * 1;
+
+                // 检测碰撞
+                const dx = (item.x + wobbleX) - doraemon.x;
+                const dy = item.y - (doraemon.y + Math.sin(doraemon.bobOffset) * 3);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 55) {
+                    if (item.type === 'coin') {
+                        gameState.score += 10;
+                        createParticles(item.x, item.y, '#FFD700', 15);
+                    } else {
+                        gameState.lives--;
+                        createParticles(item.x, item.y, '#FF0000', 20);
+                        canvas.style.transform = 'translateX(-5px)';
+                        setTimeout(() => canvas.style.transform = 'translateX(5px)', 50);
+                        setTimeout(() => canvas.style.transform = 'translateX(0)', 100);
+                        if (gameState.lives <= 0) {
+                            gameOver();
+                            return;
+                        }
+                    }
+                    items.splice(i, 1);
+                    updateUI();
+                    continue;
+                }
+
+                // 移除超出屏幕的物品
+                if (item.y > canvas.height + 30) {
+                    items.splice(i, 1);
+                }
+            }
+
+            // 更新粒子
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.3;
+                p.life--;
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            // 更新倒计时显示
+            const timeUntilLevel = Math.max(0, Math.ceil(LEVEL_UP_TIME - levelTimer));
+            document.getElementById('nextLevel').textContent = timeUntilLevel;
+        }
+
+        // 绘制机器猫
+        function drawDoraemon() {
+            ctx.save();
+            ctx.translate(doraemon.x, doraemon.y + Math.sin(doraemon.bobOffset) * 3);
+
+            const bobY = Math.sin(doraemon.bobOffset) * 2;
+
+            // 身体
+            ctx.fillStyle = '#00BFFF';
+            ctx.beginPath();
+            ctx.ellipse(0, 5 + bobY, 38, 32, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.beginPath();
+            ctx.ellipse(-10, -5 + bobY, 15, 20, -0.3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 肚子白色部分
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.ellipse(0, 12 + bobY, 28, 22, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 头部
+            ctx.fillStyle = '#00BFFF';
+            ctx.beginPath();
+            ctx.arc(0, -22 + bobY, 35, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.beginPath();
+            ctx.arc(-12, -35 + bobY, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 脸部
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.ellipse(0, -15 + bobY, 28, 23, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 眼睛
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.ellipse(-9, -28 + bobY, 11, 14, -0.1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(9, -28 + bobY, 11, 14, 0.1, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.beginPath();
+            ctx.ellipse(-12, -32 + bobY, 4, 5, -0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(6, -32 + bobY, 4, 5, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 眼珠
+            if (doraemon.isBlinking) {
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(-15, -27 + bobY);
+                ctx.lineTo(-3, -27 + bobY);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(3, -27 + bobY);
+                ctx.lineTo(15, -27 + bobY);
+                ctx.stroke();
+            } else {
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.ellipse(-7, -27 + bobY, 4, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(7, -27 + bobY, 4, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.arc(-5, -29 + bobY, 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(9, -29 + bobY, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 红鼻子
+            ctx.fillStyle = '#FF1493';
+            ctx.beginPath();
+            ctx.arc(0, -15 + bobY, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.beginPath();
+            ctx.ellipse(-3, -18 + bobY, 3, 2, -0.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 人中
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, -7 + bobY);
+            ctx.lineTo(0, 2 + bobY);
+            ctx.stroke();
+
+            // 嘴巴
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(0, 2 + bobY);
+            ctx.quadraticCurveTo(0, 15, -18, 10 + bobY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, 2 + bobY);
+            ctx.quadraticCurveTo(0, 15, 18, 10 + bobY);
+            ctx.stroke();
+
+            // 胡须
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+
+            ctx.beginPath();
+            ctx.moveTo(-20, -14 + bobY);
+            ctx.lineTo(-40, -18 + bobY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-22, -8 + bobY);
+            ctx.lineTo(-42, -8 + bobY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-20, -2 + bobY);
+            ctx.lineTo(-40, 2 + bobY);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(20, -14 + bobY);
+            ctx.lineTo(40, -18 + bobY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(22, -8 + bobY);
+            ctx.lineTo(42, -8 + bobY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(20, -2 + bobY);
+            ctx.lineTo(40, 2 + bobY);
+            ctx.stroke();
+
+            // 红色项圈
+            ctx.fillStyle = '#FF0000';
+            ctx.beginPath();
+            ctx.ellipse(0, 13 + bobY, 32, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.beginPath();
+            ctx.ellipse(0, 10 + bobY, 25, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 金色铃铛
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(0, 22 + bobY, 11, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.beginPath();
+            ctx.ellipse(-4, 18 + bobY, 4, 3, -0.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#B8860B';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 22 + bobY, 11, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = '#B8860B';
+            ctx.beginPath();
+            ctx.ellipse(0, 26 + bobY, 4, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#B8860B';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-8, 20 + bobY);
+            ctx.lineTo(8, 20 + bobY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-6, 24 + bobY);
+            ctx.lineTo(6, 24 + bobY);
+            ctx.stroke();
+
+            // 半圆形口袋
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(0, 30 + bobY, 20, 0, Math.PI);
+            ctx.fill();
+
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(0, 30 + bobY, 20, 0, Math.PI);
+            ctx.stroke();
+
+            // 左手
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(-32, 8 + bobY, 13, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(32, 8 + bobY, 13, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 左脚
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.ellipse(-18, 40 + bobY, 16, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.ellipse(18, 40 + bobY, 16, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#CCCCCC';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(-22, 40 + bobY);
+            ctx.lineTo(-14, 40 + bobY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(14, 40 + bobY);
+            ctx.lineTo(22, 40 + bobY);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // 绘制物品
+        function drawItems() {
+            for (let item of items) {
+                ctx.save();
+                const wobbleX = Math.sin(item.wobble) * 1;
+                ctx.translate(item.x + wobbleX, item.y);
+                ctx.rotate(item.rotation);
+
+                if (item.type === 'coin') {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                    ctx.beginPath();
+                    ctx.ellipse(3, 3, 15, 15, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    const gradient = ctx.createRadialGradient(-5, -5, 0, 0, 0, 18);
+                    gradient.addColorStop(0, '#FFF44F');
+                    gradient.addColorStop(0.5, '#FFD700');
+                    gradient.addColorStop(1, '#FFA500');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 16, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.strokeStyle = '#FF8C00';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 16, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#FF8C00';
+                    ctx.font = 'bold 18px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('¥', 0, 0);
+
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                    ctx.beginPath();
+                    ctx.ellipse(-6, -6, 6, 4, -0.5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                    ctx.beginPath();
+                    ctx.arc(-5, -5, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                    ctx.beginPath();
+                    ctx.ellipse(4, 4, 16, 16, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    const bombGradient = ctx.createRadialGradient(-5, -5, 0, 0, 5, 18);
+                    bombGradient.addColorStop(0, '#555555');
+                    bombGradient.addColorStop(1, '#222222');
+                    ctx.fillStyle = bombGradient;
+                    ctx.beginPath();
+                    ctx.arc(0, 5, 16, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#333333';
+                    const spikePositions = [
+                        {x: 0, y: -16},
+                        {x: 11, y: -11},
+                        {x: 16, y: 0},
+                        {x: 11, y: 11},
+                        {x: 0, y: 16},
+                        {x: -11, y: 11},
+                        {x: -16, y: 0},
+                        {x: -11, y: -11}
+                    ];
+                    for (let pos of spikePositions) {
+                        ctx.beginPath();
+                        ctx.arc(pos.x, pos.y + 5, 5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    ctx.strokeStyle = '#8B4513';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -11);
+                    ctx.quadraticCurveTo(5, -18, 10, -25);
+                    ctx.stroke();
+
+                    const sparkSize = 5 + Math.sin(Date.now() / 50) * 2;
+                    ctx.fillStyle = '#FF4500';
+                    ctx.beginPath();
+                    ctx.arc(10, -25, sparkSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#FFD700';
+                    ctx.beginPath();
+                    ctx.arc(10, -25, sparkSize * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#FF0000';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('☠', 0, 6);
+                }
+
+                ctx.restore();
+            }
+        }
+
+        // 绘制粒子
+        function drawParticles() {
+            for (let p of particles) {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life / 40;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        // 绘制背景装饰
+        function drawBackground() {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            drawCloud(100, 80, 45);
+            drawCloud(300, 110, 38);
+            drawCloud(550, 90, 42);
+            drawCloud(700, 130, 35);
+            drawCloud(200, 60, 25);
+            drawCloud(650, 60, 28);
+
+            ctx.fillStyle = '#228B22';
+            for (let i = 0; i < canvas.width; i += 25) {
+                const height = 12 + Math.sin(i * 0.1 + Date.now() / 500) * 3;
+                ctx.beginPath();
+                ctx.moveTo(i, canvas.height);
+                ctx.lineTo(i + 8, canvas.height - height);
+                ctx.lineTo(i + 16, canvas.height);
+                ctx.fill();
+            }
+
+            const flowerColors = ['#FF69B4', '#FFD700', '#FF6B6B', '#DDA0DD'];
+            for (let i = 50; i < canvas.width; i += 150) {
+                ctx.fillStyle = flowerColors[(i / 150) % 4];
+                drawFlower(i, canvas.height - 10, 6);
+            }
+        }
+
+        function drawCloud(x, y, size) {
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.arc(x + size * 0.7, y - size * 0.15, size * 0.65, 0, Math.PI * 2);
+            ctx.arc(x + size * 1.3, y, size * 0.75, 0, Math.PI * 2);
+            ctx.arc(x + size * 0.5, y + size * 0.1, size * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawFlower(x, y, size) {
+            for (let i = 0; i < 5; i++) {
+                ctx.beginPath();
+                const angle = (i / 5) * Math.PI * 2;
+                ctx.ellipse(
+                    x + Math.cos(angle) * size * 0.6,
+                    y + Math.sin(angle) * size * 0.6,
+                    size * 0.5, size * 0.3,
+                    angle, 0, Math.PI * 2
+                );
+                ctx.fill();
+            }
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(x, y, size * 0.3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 主游戏循环
+        function gameLoop(currentTime) {
+            if (!gameState.isRunning) return;
+
+            const deltaTime = currentTime - gameState.lastTime;
+            gameState.lastTime = currentTime;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawBackground();
+            update(deltaTime);
+
+            if (!gameState.isRunning) return;
+
+            drawParticles();
+            drawItems();
+            drawDoraemon();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 初始化
+        updateLeaderboard();
+        updateUI();
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

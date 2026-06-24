@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>神火股份煤电铝一体化估值模型</title>
+  <meta name="description" content="神火股份煤电铝一体化估值模型：输入关键经营与财务假设，一键测算归母净利润、EPS、分红情景与铝价敏感性。" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            accent: '#00AEEF',
+            ink: '#050505',
+            card: 'rgba(255,255,255,0.075)'
+          },
+          boxShadow: {
+            glow: '0 0 45px rgba(0,174,239,0.24)',
+            soft: '0 20px 70px rgba(0,0,0,0.42)'
+          },
+          backdropBlur: {
+            xs: '2px'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root { --accent: #00AEEF; --bg: #000; --panel: rgba(255,255,255,.075); }
+    * { box-sizing: border-box; }
+    body {
+      background:
+        radial-gradient(circle at 20% 0%, rgba(0,174,239,.22), transparent 31rem),
+        radial-gradient(circle at 88% 12%, rgba(0,174,239,.10), transparent 28rem),
+        linear-gradient(180deg, #050505 0%, #000 45%, #04070a 100%);
+      color: #f5f5f7;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+    }
+    .glass {
+      background: linear-gradient(145deg, rgba(255,255,255,.10), rgba(255,255,255,.045));
+      border: 1px solid rgba(255,255,255,.13);
+      box-shadow: 0 18px 60px rgba(0,0,0,.32);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+    .mini-card, .main-card {
+      transition: transform .35s ease, box-shadow .35s ease, border-color .35s ease, background .35s ease;
+    }
+    .mini-card:hover, .main-card:hover {
+      transform: translateY(-6px) scale(1.015);
+      box-shadow: 0 24px 80px rgba(0,174,239,.20);
+      border-color: rgba(0,174,239,.50);
+    }
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity .75s cubic-bezier(.2,.8,.2,1), transform .75s cubic-bezier(.2,.8,.2,1);
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .input-box {
+      width: 100%;
+      border-radius: 1rem;
+      border: 1px solid rgba(255,255,255,.13);
+      background: rgba(255,255,255,.065);
+      color: white;
+      padding: .78rem .95rem;
+      outline: none;
+      transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .input-box:focus {
+      border-color: rgba(0,174,239,.9);
+      box-shadow: 0 0 0 4px rgba(0,174,239,.14);
+      background: rgba(255,255,255,.10);
+    }
+    .input-label { color: rgba(245,245,247,.74); font-size: .84rem; margin-bottom: .42rem; display: block; }
+    .unit { color: rgba(245,245,247,.45); font-size: .76rem; margin-top: .30rem; }
+    .accent-text { color: var(--accent); }
+    .gradient-title {
+      background: linear-gradient(90deg, #fff, #bfefff 44%, var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .number { font-variant-numeric: tabular-nums; }
+    .btn {
+      border-radius: 999px;
+      padding: .86rem 1.25rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .55rem;
+      font-weight: 700;
+      transition: transform .25s ease, box-shadow .25s ease, background .25s ease;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary { background: var(--accent); color: #001018; box-shadow: 0 18px 45px rgba(0,174,239,.28); }
+    .btn-secondary { background: rgba(255,255,255,.10); color: #fff; border: 1px solid rgba(255,255,255,.16); }
+    .pill { border: 1px solid rgba(0,174,239,.28); background: rgba(0,174,239,.10); color: #ccefff; }
+    .flow-line { position: relative; }
+    .flow-line:not(:last-child)::after {
+      content: ''; position: absolute; left: 1.02rem; top: 2.65rem; width: 1px; height: calc(100% - 1.3rem); background: linear-gradient(var(--accent), transparent);
+    }
+    @media print {
+      body { background: #000; }
+      .no-print { display: none !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased selection:bg-accent selection:text-black">
+  <header class="relative overflow-hidden px-5 py-8 sm:px-8 lg:px-12">
+    <nav class="mx-auto flex max-w-7xl items-center justify-between rounded-full border border-white/10 bg-white/5 px-5 py-3 backdrop-blur-xl reveal">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-accent"><i class="fa-solid fa-fire-flame-curved"></i></div>
+        <div>
+          <div class="text-sm font-semibold tracking-wide">SHENHUO VALUATION</div>
+          <div class="text-xs text-white/45">Coal · Power · Aluminum</div>
+        </div>
+      </div>
+      <a href="#inputs" class="hidden rounded-full bg-white/10 px-4 py-2 text-sm text-white/80 hover:bg-white/15 sm:inline-flex">调整参数</a>
+    </nav>
+
+    <section class="mx-auto grid max-w-7xl items-center gap-10 pb-16 pt-16 lg:grid-cols-[1.08fr_.92fr] lg:pb-24 lg:pt-24">
+      <div class="reveal">
+        <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-2 text-sm text-cyan-100">
+          <i class="fa-solid fa-chart-line text-accent"></i>
+          默认基准：电解铝含税售价 23,000 元/吨，当前股价 24 元/股
+        </div>
+        <h1 class="gradient-title text-5xl font-bold leading-tight tracking-tight sm:text-6xl lg:text-7xl">神火股份煤电铝一体化估值模型</h1>
+        <p class="mt-5 text-xl text-white/56 sm:text-2xl">Shenhuo Coal-Power-Aluminum Valuation Model</p>
+        <p class="mt-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/52">
+          <i class="fa-regular fa-user text-accent"></i>
+          作者：小轻松熊哥哥
+        </p>
+        <p class="mt-7 max-w-2xl text-base leading-8 text-white/64 sm:text-lg">输入产量、铝价、氧化铝、电价、煤炭、税率与少数股东权益等核心假设，一键测算归母净利润、EPS、分红情景和铝价敏感性。</p>
+        <div class="mt-9 flex flex-col gap-3 sm:flex-row no-print">
+          <button id="heroCalcBtn" class="btn btn-primary"><i class="fa-solid fa-calculator"></i> 立即计算</button>
+          <button id="heroCopyBtn" class="btn btn-secondary"><i class="fa-regular fa-copy"></i> 复制摘要</button>
+        </div>
+      </div>
+      <div class="main-card glass reveal rounded-[2rem] p-6 sm:p-8">
+        <div class="mb-5 flex items-center justify-between">
+          <div>
+            <p class="text-sm uppercase tracking-[.24em] text-white/40">Baseline Result</p>
+            <h2 class="mt-2 text-2xl font-bold">核心测算结果</h2>
+          </div>
+          <div class="rounded-full bg-accent/15 p-3 text-accent"><i class="fa-solid fa-bolt"></i></div>
+        </div>
+        <div class="rounded-[1.5rem] border border-accent/25 bg-accent/10 p-6">
+          <p class="text-sm text-white/55">归母净利润</p>
+          <div class="mt-2 flex items-end gap-2"><span id="heroNetProfit" class="number text-5xl font-bold text-white">--</span><span class="pb-2 text-white/50">亿元</span></div>
+          <p id="heroExplain" class="mt-3 text-sm text-white/52">等待计算...</p>
+        </div>
+        <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div class="mini-card rounded-3xl border border-white/10 bg-white/[.055] p-5">
+            <div id="heroEps" class="number text-3xl font-bold accent-text">--</div>
+            <p class="mt-1 text-sm text-white/55">EPS 元/股</p>
+          </div>
+          <div class="mini-card rounded-3xl border border-white/10 bg-white/[.055] p-5">
+            <div id="heroDividendPerShare" class="number text-3xl font-bold accent-text">--</div>
+            <p class="mt-1 text-sm text-white/55">每股分红 元/股</p>
+          </div>
+          <div class="mini-card rounded-3xl border border-white/10 bg-white/[.055] p-5">
+            <div id="heroDividendYield" class="number text-3xl font-bold accent-text">--</div>
+            <p id="heroDividendYieldLabel" class="mt-1 text-sm text-white/55">输入分红率股息率</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-5 pb-20 sm:px-8 lg:px-12">
+    <section class="reveal mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" id="quickStats">
+      <div class="mini-card glass rounded-3xl p-6"><div id="statAlPrice" class="number text-4xl font-bold accent-text">--</div><p class="mt-2 text-white/60">电解铝含税售价</p><p class="text-xs uppercase tracking-wider text-white/35">Aluminum Price</p></div>
+      <div class="mini-card glass rounded-3xl p-6"><div id="statOutput" class="number text-4xl font-bold accent-text">--</div><p class="mt-2 text-white/60">电解铝合计产量</p><p class="text-xs uppercase tracking-wider text-white/35">Total Output</p></div>
+      <div class="mini-card glass rounded-3xl p-6"><div id="statSensitivity" class="number text-4xl font-bold accent-text">--</div><p class="mt-2 text-white/60">铝价每+500元影响</p><p class="text-xs uppercase tracking-wider text-white/35">Sensitivity</p></div>
+      <div class="mini-card glass rounded-3xl p-6"><div id="statMinority" class="number text-4xl font-bold accent-text">--</div><p class="mt-2 text-white/60">云南少数股东比例</p><p class="text-xs uppercase tracking-wider text-white/35">Minority Interest</p></div>
+    </section>
+
+    <section id="inputs" class="main-card glass reveal rounded-[2rem] p-6 sm:p-8 lg:p-10">
+      <div class="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p class="text-sm uppercase tracking-[.24em] text-accent/80">Input Assumptions</p>
+          <h2 class="mt-2 text-3xl font-bold sm:text-4xl">主要输入参数</h2>
+          <p class="mt-3 max-w-3xl text-white/55">初始值来自 skill 默认数据，并按你的要求将电解铝含税售价改为 23,000 元/吨、当前股价改为 24 元。</p>
+        </div>
+        <div class="flex flex-col gap-3 sm:flex-row no-print">
+          <button id="calcBtn" class="btn btn-primary"><i class="fa-solid fa-calculator"></i> 计算估值</button>
+          <button id="resetBtn" class="btn btn-secondary"><i class="fa-solid fa-rotate-left"></i> 恢复默认</button>
+          <button id="copyBtn" class="btn btn-secondary"><i class="fa-regular fa-copy"></i> 复制结果</button>
+        </div>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-2">
+        <div class="rounded-[1.5rem] border border-white/10 bg-white/[.04] p-5">
+          <h3 class="mb-5 flex items-center gap-2 text-xl font-bold"><i class="fa-solid fa-industry text-accent"></i> 电解铝参数</h3>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label><span class="input-label">云南神火产量</span><input id="ynOutput" class="input-box" type="number" step="0.01"><div class="unit">万吨</div></label>
+            <label><span class="input-label">新疆神火产量</span><input id="xjOutput" class="input-box" type="number" step="0.01"><div class="unit">万吨</div></label>
+            <label><span class="input-label">电解铝含税售价</span><input id="alPriceTax" class="input-box" type="number" step="1"><div class="unit">元/吨</div></label>
+            <label><span class="input-label">增值税税率</span><input id="vatRate" class="input-box" type="number" step="0.01"><div class="unit">%</div></label>
+            <label><span class="input-label">氧化铝单耗</span><input id="aluminaUse" class="input-box" type="number" step="0.01"><div class="unit">吨/吨铝</div></label>
+            <label><span class="input-label">预焙阳极单耗</span><input id="anodeUse" class="input-box" type="number" step="0.01"><div class="unit">吨/吨铝</div></label>
+            <label><span class="input-label">电力单耗</span><input id="powerUse" class="input-box" type="number" step="1"><div class="unit">度/吨铝</div></label>
+          </div>
+        </div>
+
+        <div class="rounded-[1.5rem] border border-white/10 bg-white/[.04] p-5">
+          <h3 class="mb-5 flex items-center gap-2 text-xl font-bold"><i class="fa-solid fa-coins text-accent"></i> 成本参数</h3>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label><span class="input-label">云南氧化铝含税到厂价</span><input id="ynAluminaTax" class="input-box" type="number" step="1"><div class="unit">元/吨</div></label>
+            <label><span class="input-label">新疆氧化铝含税到厂价</span><input id="xjAluminaTax" class="input-box" type="number" step="1"><div class="unit">元/吨</div></label>
+            <label><span class="input-label">云南电价含税</span><input id="ynPowerTax" class="input-box" type="number" step="0.001"><div class="unit">元/度</div></label>
+            <label><span class="input-label">新疆电价含税</span><input id="xjPowerTax" class="input-box" type="number" step="0.001"><div class="unit">元/度</div></label>
+            <label><span class="input-label">自产预焙阳极成本</span><input id="anodeCost" class="input-box" type="number" step="1"><div class="unit">元/吨，不含税</div></label>
+            <label><span class="input-label">辅料及制造折旧等费用</span><input id="otherAlCost" class="input-box" type="number" step="1"><div class="unit">元/吨</div></label>
+          </div>
+        </div>
+
+        <div class="rounded-[1.5rem] border border-white/10 bg-white/[.04] p-5">
+          <h3 class="mb-5 flex items-center gap-2 text-xl font-bold"><i class="fa-solid fa-mountain text-accent"></i> 煤炭业务</h3>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label><span class="input-label">煤炭销量</span><input id="coalVolume" class="input-box" type="number" step="0.01"><div class="unit">万吨</div></label>
+            <label><span class="input-label">煤炭含税售价</span><input id="coalPriceTax" class="input-box" type="number" step="1"><div class="unit">元/吨</div></label>
+            <label><span class="input-label">煤炭不含税单位成本</span><input id="coalCost" class="input-box" type="number" step="1"><div class="unit">元/吨</div></label>
+          </div>
+        </div>
+
+        <div class="rounded-[1.5rem] border border-white/10 bg-white/[.04] p-5">
+          <h3 class="mb-5 flex items-center gap-2 text-xl font-bold"><i class="fa-solid fa-layer-group text-accent"></i> 铝加工与投资收益</h3>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label><span class="input-label">铝加工毛利</span><input id="processingGross" class="input-box" type="number" step="0.01"><div class="unit">亿元</div></label>
+            <label><span class="input-label">投资收益</span><input id="investmentIncome" class="input-box" type="number" step="0.01"><div class="unit">亿元，默认税后</div></label>
+          </div>
+        </div>
+
+        <div class="rounded-[1.5rem] border border-white/10 bg-white/[.04] p-5">
+          <h3 class="mb-5 flex items-center gap-2 text-xl font-bold"><i class="fa-solid fa-scale-balanced text-accent"></i> 税费、权益与分红</h3>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label><span class="input-label">营业税金及附加</span><input id="taxSurcharge" class="input-box" type="number" step="0.01"><div class="unit">亿元</div></label>
+            <label><span class="input-label">期间费用</span><input id="periodExpense" class="input-box" type="number" step="0.01"><div class="unit">亿元</div></label>
+            <label><span class="input-label">云南所得税率</span><input id="ynIncomeTaxRate" class="input-box" type="number" step="0.01"><div class="unit">%</div></label>
+            <label><span class="input-label">其他业务所得税率</span><input id="otherIncomeTaxRate" class="input-box" type="number" step="0.01"><div class="unit">%</div></label>
+            <label><span class="input-label">云南少数股东权益比例</span><input id="minorityRate" class="input-box" type="number" step="0.01"><div class="unit">%</div></label>
+            <label><span class="input-label">总股本</span><input id="shares" class="input-box" type="number" step="0.01"><div class="unit">亿股</div></label>
+            <label><span class="input-label">当前股价</span><input id="stockPrice" class="input-box" type="number" step="0.01"><div class="unit">元/股</div></label>
+            <label><span class="input-label">分红率因子</span><input id="dividendRate" class="input-box" type="number" step="0.01"><div class="unit">%</div></label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mt-10 grid gap-6 lg:grid-cols-[1fr_.9fr]">
+      <div class="main-card glass reveal rounded-[2rem] p-6 sm:p-8">
+        <p class="text-sm uppercase tracking-[.24em] text-accent/80">Profit Bridge</p>
+        <h2 class="mt-2 text-3xl font-bold">税费与归母桥</h2>
+        <div id="profitBridge" class="mt-8 space-y-5"></div>
+      </div>
+      <div class="main-card glass reveal rounded-[2rem] p-6 sm:p-8">
+        <p class="text-sm uppercase tracking-[.24em] text-accent/80">Assumption Snapshot</p>
+        <h2 class="mt-2 text-3xl font-bold">核心假设摘要</h2>
+        <div id="assumptionSummary" class="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2"></div>
+      </div>
+    </section>
+
+    <section class="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div class="main-card glass reveal rounded-[2rem] p-6 sm:p-8">
+        <p class="text-sm uppercase tracking-[.24em] text-accent/80">Regional Cost</p>
+        <h2 class="mt-2 text-3xl font-bold">分区域吨铝成本</h2>
+        <div id="costCards" class="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2"></div>
+      </div>
+      <div class="main-card glass reveal rounded-[2rem] p-6 sm:p-8">
+        <p class="text-sm uppercase tracking-[.24em] text-accent/80">Gross Profit</p>
+        <h2 class="mt-2 text-3xl font-bold">分业务毛利</h2>
+        <div class="mt-7 h-80"><canvas id="grossChart"></canvas></div>
+      </div>
+    </section>
+
+    <section class="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[1.15fr_.85fr]">
+      <div class="main-card glass reveal rounded-[2rem] p-6 sm:p-8">
+        <p class="text-sm uppercase tracking-[.24em] text-accent/80">Sensitivity</p>
+        <h2 class="mt-2 text-3xl font-bold">铝价敏感性</h2>
+        <p class="mt-3 text-white/55">按当前输入参数自动重算：基准铝价 ±500 / ±1000 元/吨。</p>
+        <div class="mt-7 h-80"><canvas id="sensitivityChart"></canvas></div>
+      </div>
+      <div class="main-card glass reveal rounded-[2rem] p-6 sm:p-8">
+        <p class="text-sm uppercase tracking-[.24em] text-accent/80">Dividend Scenario</p>
+        <h2 class="mt-2 text-3xl font-bold">分红情景</h2>
+        <div id="dividendCards" class="mt-7 space-y-4"></div>
+      </div>
+    </section>
+
+    <section class="main-card glass reveal mt-10 rounded-[2rem] p-6 sm:p-8">
+      <p class="text-sm uppercase tracking-[.24em] text-accent/80">Risk Notes</p>
+      <h2 class="mt-2 text-3xl font-bold">口径说明与风险提示</h2>
+      <div class="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="mini-card rounded-3xl border border-white/10 bg-white/[.045] p-5"><div class="mb-3 text-2xl text-accent"><i class="fa-solid fa-arrow-trend-up"></i></div><h3 class="font-bold">价格波动</h3><p class="mt-2 text-sm text-white/55">铝价、氧化铝、预焙阳极、煤价均会影响利润弹性。</p></div>
+        <div class="mini-card rounded-3xl border border-white/10 bg-white/[.045] p-5"><div class="mb-3 text-2xl text-accent"><i class="fa-solid fa-plug-circle-bolt"></i></div><h3 class="font-bold">电价政策</h3><p class="mt-2 text-sm text-white/55">云南、新疆电价和能耗政策变化会改变区域成本优势。</p></div>
+        <div class="mini-card rounded-3xl border border-white/10 bg-white/[.045] p-5"><div class="mb-3 text-2xl text-accent"><i class="fa-solid fa-file-invoice-dollar"></i></div><h3 class="font-bold">税率与少数股东</h3><p class="mt-2 text-sm text-white/55">云南税收优惠及少数股东权益比例变化会影响归母口径。</p></div>
+        <div class="mini-card rounded-3xl border border-white/10 bg-white/[.045] p-5"><div class="mb-3 text-2xl text-accent"><i class="fa-solid fa-circle-info"></i></div><h3 class="font-bold">非投资建议</h3><p class="mt-2 text-sm text-white/55">本页为情景测算工具，分红方案以公司公告为准，不构成投资建议。</p></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="fixed bottom-6 left-1/2 z-50 hidden -translate-x-1/2 rounded-full border border-accent/30 bg-black/80 px-5 py-3 text-sm text-white shadow-glow backdrop-blur-xl"></div>
+
+  <script>
+    const defaults = {
+      ynOutput: 90,
+      xjOutput: 80,
+      alPriceTax: 23000,
+      vatRate: 13,
+      aluminaUse: 1.93,
+      anodeUse: 0.46,
+      powerUse: 13400,
+      ynAluminaTax: 2800,
+      xjAluminaTax: 2950,
+      ynPowerTax: 0.42,
+      xjPowerTax: 0.23,
+      anodeCost: 4700,
+      otherAlCost: 1800,
+      coalVolume: 680,
+      coalPriceTax: 1000,
+      coalCost: 720,
+      processingGross: 3,
+      investmentIncome: 3.5,
+      taxSurcharge: 7,
+      periodExpense: 16,
+      ynIncomeTaxRate: 15,
+      otherIncomeTaxRate: 25,
+      minorityRate: 41.75,
+      shares: 22.48,
+      stockPrice: 24,
+      dividendRate: 45
+    };
+
+    let sensitivityChart, grossChart, lastResult;
+    const fmt = (n, digits = 2) => Number.isFinite(n) ? n.toLocaleString('zh-CN', { minimumFractionDigits: digits, maximumFractionDigits: digits }) : '--';
+    const fmt0 = n => Number.isFinite(n) ? n.toLocaleString('zh-CN', { maximumFractionDigits: 0 }) : '--';
+    const toYi = wan => wan / 10000;
+    const get = id => parseFloat(document.getElementById(id).value || 0);
+    const set = (id, v) => { document.getElementById(id).value = v; };
+
+    function loadDefaults() {
+      Object.entries(defaults).forEach(([k, v]) => set(k, v));
+      calculateAndRender();
+      showToast('已恢复默认参数');
+    }
+
+    function readInputs() {
+      const obj = {};
+      Object.keys(defaults).forEach(k => obj[k] = get(k));
+      obj.vat = obj.vatRate / 100;
+      obj.ynTax = obj.ynIncomeTaxRate / 100;
+      obj.otherTax = obj.otherIncomeTaxRate / 100;
+      obj.minority = obj.minorityRate / 100;
+      return obj;
+    }
+
+    function calcModel(input, overrideAlPriceTax = null) {
+      const x = { ...input };
+      if (overrideAlPriceTax !== null) x.alPriceTax = overrideAlPriceTax;
+      const divisor = 1 + x.vat;
+      const alPriceNet = x.alPriceTax / divisor;
+      const ynAluminaNet = x.ynAluminaTax / divisor;
+      const xjAluminaNet = x.xjAluminaTax / divisor;
+      const ynPowerNet = x.ynPowerTax / divisor;
+      const xjPowerNet = x.xjPowerTax / divisor;
+      const coalPriceNet = x.coalPriceTax / divisor;
+
+      const ynAluminaCost = ynAluminaNet * x.aluminaUse;
+      const xjAluminaCost = xjAluminaNet * x.aluminaUse;
+      const anodeCostPerTon = x.anodeCost * x.anodeUse;
+      const ynPowerCost = ynPowerNet * x.powerUse;
+      const xjPowerCost = xjPowerNet * x.powerUse;
+      const ynCost = ynAluminaCost + anodeCostPerTon + ynPowerCost + x.otherAlCost;
+      const xjCost = xjAluminaCost + anodeCostPerTon + xjPowerCost + x.otherAlCost;
+      const ynMargin = alPriceNet - ynCost;
+      const xjMargin = alPriceNet - xjCost;
+
+      const ynGross = x.ynOutput * ynMargin;
+      const xjGross = x.xjOutput * xjMargin;
+      const coalGross = x.coalVolume * (coalPriceNet - x.coalCost);
+      // 页面输入中，总额类项目使用“亿元”；模型内部仍统一换算为“万元”。
+      const processingGross = x.processingGross * 10000;
+      const investmentIncome = x.investmentIncome * 10000;
+      const taxSurcharge = x.taxSurcharge * 10000;
+      const periodExpense = x.periodExpense * 10000;
+      const totalGross = ynGross + xjGross + coalGross + processingGross;
+
+      const ynShare = totalGross === 0 ? 0 : ynGross / totalGross;
+      const ynTaxSurcharge = taxSurcharge * ynShare;
+      const ynPeriodExpense = periodExpense * ynShare;
+      const ynPreTax = ynGross - ynTaxSurcharge - ynPeriodExpense;
+      const operatingPreTax = totalGross - taxSurcharge - periodExpense;
+      const otherPreTax = operatingPreTax - ynPreTax;
+      const ynIncomeTax = Math.max(0, ynPreTax) * x.ynTax;
+      const otherIncomeTax = Math.max(0, otherPreTax) * x.otherTax;
+      const incomeTax = ynIncomeTax + otherIncomeTax;
+      const operatingNet = operatingPreTax - incomeTax;
+      const consolidatedNet = operatingNet + investmentIncome;
+      const ynNet = ynPreTax - ynIncomeTax;
+      const minorityProfit = Math.max(0, ynNet) * x.minority;
+      const parentNet = consolidatedNet - minorityProfit;
+      const parentNetYi = toYi(parentNet);
+      const eps = parentNetYi / x.shares;
+
+      return {
+        input: x, alPriceNet, coalPriceNet,
+        ynAluminaCost, xjAluminaCost, anodeCostPerTon, ynPowerCost, xjPowerCost,
+        ynCost, xjCost, ynMargin, xjMargin,
+        ynGross, xjGross, coalGross, processingGross, investmentIncome, taxSurcharge, periodExpense, totalGross,
+        ynTaxSurcharge, ynPeriodExpense, ynPreTax, operatingPreTax, otherPreTax,
+        ynIncomeTax, otherIncomeTax, incomeTax, operatingNet, consolidatedNet,
+        ynNet, minorityProfit, parentNet, parentNetYi, eps
+      };
+    }
+
+    function makeMini(title, value, sub, icon = 'fa-circle-dot') {
+      return `<div class="mini-card rounded-3xl border border-white/10 bg-white/[.055] p-5">
+        <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-accent"><i class="fa-solid ${icon}"></i></div>
+        <div class="number text-2xl font-bold accent-text">${value}</div>
+        <p class="mt-1 text-sm text-white/65">${title}</p>
+        <p class="mt-1 text-xs uppercase tracking-wider text-white/32">${sub || ''}</p>
+      </div>`;
+    }
+
+    function renderBridge(r) {
+      const rows = [
+        ['总毛利', toYi(r.totalGross), '云南铝 + 新疆铝 + 煤炭 + 铝加工'],
+        ['减：税金及附加', -toYi(r.taxSurcharge), '按毛利占比分摊'],
+        ['减：期间费用', -toYi(r.periodExpense), '销售、管理、财务等期间费用'],
+        ['经营性税前利润', toYi(r.operatingPreTax), 'Total Operating Pre-tax Profit'],
+        ['减：所得税', -toYi(r.incomeTax), `云南 ${r.input.ynIncomeTaxRate}% / 其他 ${r.input.otherIncomeTaxRate}%`],
+        ['加：税后投资收益', toYi(r.investmentIncome), '默认已为税后口径'],
+        ['合并净利润', toYi(r.consolidatedNet), 'Consolidated Net Profit'],
+        ['减：少数股东损益', -toYi(r.minorityProfit), `仅扣云南业务净利的 ${r.input.minorityRate}%`],
+        ['归母净利润', toYi(r.parentNet), 'Net Profit Attributable to Parent']
+      ];
+      document.getElementById('profitBridge').innerHTML = rows.map((row, i) => `
+        <div class="flow-line flex gap-4">
+          <div class="z-10 mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${i === rows.length - 1 ? 'bg-accent text-black' : 'bg-accent/15 text-accent'}"><i class="fa-solid ${i === rows.length - 1 ? 'fa-flag-checkered' : 'fa-chevron-down'} text-xs"></i></div>
+          <div class="flex-1 rounded-2xl border ${i === rows.length - 1 ? 'border-accent/45 bg-accent/10' : 'border-white/10 bg-white/[.04]'} p-4">
+            <div class="flex items-center justify-between gap-3"><span class="font-semibold text-white/82">${row[0]}</span><span class="number text-xl font-bold ${row[1] >= 0 ? 'text-white' : 'text-white/55'}">${fmt(row[1])} 亿</span></div>
+            <p class="mt-1 text-sm text-white/42">${row[2]}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderCosts(r) {
+      document.getElementById('costCards').innerHTML = [
+        ['云南神火', r.ynCost, r.ynMargin, r.ynAluminaCost, r.ynPowerCost, 'fa-location-dot'],
+        ['新疆神火', r.xjCost, r.xjMargin, r.xjAluminaCost, r.xjPowerCost, 'fa-location-crosshairs']
+      ].map(c => `
+        <div class="mini-card rounded-3xl border border-white/10 bg-white/[.055] p-5">
+          <div class="mb-4 flex items-center justify-between"><h3 class="text-xl font-bold">${c[0]}</h3><i class="fa-solid ${c[5]} text-accent"></i></div>
+          <div class="number text-3xl font-bold accent-text">${fmt0(c[1])}</div><p class="text-sm text-white/45">吨铝完全成本 元/吨</p>
+          <div class="mt-4 space-y-2 text-sm text-white/58">
+            <div class="flex justify-between"><span>氧化铝成本</span><span>${fmt0(c[3])}</span></div>
+            <div class="flex justify-between"><span>阳极成本</span><span>${fmt0(r.anodeCostPerTon)}</span></div>
+            <div class="flex justify-between"><span>电力成本</span><span>${fmt0(c[4])}</span></div>
+            <div class="flex justify-between"><span>辅料制造折旧</span><span>${fmt0(r.input.otherAlCost)}</span></div>
+            <div class="border-t border-white/10 pt-2 flex justify-between text-white"><span>吨毛利</span><span>${fmt0(c[2])}</span></div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderAssumptions(r) {
+      const x = r.input;
+      document.getElementById('assumptionSummary').innerHTML = [
+        ['铝价', `${fmt0(x.alPriceTax)} 元/吨`, 'Aluminum Price', 'fa-chart-simple'],
+        ['云南 / 新疆产量', `${fmt(x.ynOutput, 1)} / ${fmt(x.xjOutput, 1)} 万吨`, 'Regional Output', 'fa-industry'],
+        ['氧化铝价格', `云 ${fmt0(x.ynAluminaTax)} / 新 ${fmt0(x.xjAluminaTax)}`, 'Alumina Price', 'fa-boxes-stacked'],
+        ['电价', `云 ${fmt(x.ynPowerTax, 3)} / 新 ${fmt(x.xjPowerTax, 3)}`, 'Power Tariff', 'fa-bolt'],
+        ['煤炭售价 / 销量', `${fmt0(x.coalPriceTax)} 元 / ${fmt0(x.coalVolume)} 万吨`, 'Coal Business', 'fa-mountain'],
+        ['少数股东比例', `${fmt(x.minorityRate)}%`, 'Minority Interest', 'fa-users']
+      ].map(i => makeMini(i[0], i[1], i[2], i[3])).join('');
+    }
+
+    function renderDividend(r) {
+      const baseRate = Math.max(0, r.input.dividendRate / 100);
+      const rates = [Math.max(0, baseRate - 0.10), baseRate, baseRate + 0.10];
+      document.getElementById('dividendCards').innerHTML = rates.map(rate => {
+        const cash = r.parentNetYi * rate;
+        const perShare = cash / r.input.shares;
+        const yieldRate = perShare / r.input.stockPrice * 100;
+        const scenarioLabel = rate === baseRate ? '输入分红率' : (rate < baseRate ? '输入分红率 -10%' : '输入分红率 +10%');
+        return `<div class="mini-card rounded-3xl border border-white/10 bg-white/[.055] p-5">
+          <div class="flex items-center justify-between"><h3 class="text-xl font-bold">${fmt(rate*100, 2)}% 分红率</h3><span class="pill rounded-full px-3 py-1 text-xs">${scenarioLabel}</span></div>
+          <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+            <div><p class="text-white/42">现金分红总额</p><p class="number text-lg font-bold">${fmt(cash)} 亿</p></div>
+            <div><p class="text-white/42">每股分红</p><p class="number text-lg font-bold">${fmt(perShare, 3)} 元</p></div>
+            <div><p class="text-white/42">股息率</p><p class="number text-lg font-bold accent-text">${fmt(yieldRate)}%</p></div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function updateCharts(r, sensitivityRows) {
+      const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: 'rgba(255,255,255,.72)' } } },
+        scales: {
+          x: { ticks: { color: 'rgba(255,255,255,.55)' }, grid: { color: 'rgba(255,255,255,.08)' } },
+          y: { ticks: { color: 'rgba(255,255,255,.55)' }, grid: { color: 'rgba(255,255,255,.08)' } }
+        }
+      };
+      if (sensitivityChart) sensitivityChart.destroy();
+      sensitivityChart = new Chart(document.getElementById('sensitivityChart'), {
+        type: 'line',
+        data: {
+          labels: sensitivityRows.map(x => fmt0(x.price)),
+          datasets: [{
+            label: '归母净利润（亿元）',
+            data: sensitivityRows.map(x => Number(x.netProfitYi.toFixed(2))),
+            borderColor: '#00AEEF',
+            backgroundColor: 'rgba(0,174,239,.18)',
+            fill: true,
+            tension: .35,
+            pointBackgroundColor: sensitivityRows.map(x => x.price === r.input.alPriceTax ? '#fff' : '#00AEEF'),
+            pointBorderColor: '#00AEEF',
+            pointRadius: sensitivityRows.map(x => x.price === r.input.alPriceTax ? 6 : 4)
+          }]
+        },
+        options: commonOptions
+      });
+
+      if (grossChart) grossChart.destroy();
+      const grossOptions = {
+        ...commonOptions,
+        layout: { padding: { top: 12, right: 18, bottom: 10, left: 8 } },
+        scales: {
+          x: {
+            ticks: { color: 'rgba(255,255,255,.62)', maxRotation: 0, autoSkip: false },
+            grid: { display: false }
+          },
+          y: {
+            beginAtZero: true,
+            grace: '15%',
+            ticks: { color: 'rgba(255,255,255,.55)' },
+            grid: { color: 'rgba(255,255,255,.08)' }
+          }
+        }
+      };
+      grossChart = new Chart(document.getElementById('grossChart'), {
+        type: 'bar',
+        data: {
+          labels: ['云南铝', '新疆铝', '煤炭', '铝加工'],
+          datasets: [{
+            label: '毛利（亿元）',
+            data: [r.ynGross, r.xjGross, r.coalGross, r.processingGross].map(v => Number(toYi(v).toFixed(2))),
+            backgroundColor: ['rgba(0,174,239,.85)', 'rgba(0,174,239,.58)', 'rgba(255,255,255,.42)', 'rgba(255,255,255,.25)'],
+            borderColor: ['#00AEEF', '#00AEEF', 'rgba(255,255,255,.55)', 'rgba(255,255,255,.38)'],
+            borderWidth: 1,
+            borderRadius: 10,
+            barPercentage: 0.42,
+            categoryPercentage: 0.68,
+            maxBarThickness: 52
+          }]
+        },
+        options: grossOptions
+      });
+    }
+
+    function calculateAndRender() {
+      const input = readInputs();
+      const r = calcModel(input);
+      lastResult = r;
+      const prices = [input.alPriceTax - 1000, input.alPriceTax - 500, input.alPriceTax, input.alPriceTax + 500, input.alPriceTax + 1000];
+      const sensitivityRows = prices.map(price => ({ price, netProfitYi: calcModel(input, price).parentNetYi }));
+      const baseIndex = 2;
+      const sensPer500 = sensitivityRows[baseIndex + 1].netProfitYi - sensitivityRows[baseIndex].netProfitYi;
+
+      document.getElementById('heroNetProfit').textContent = fmt(r.parentNetYi);
+      document.getElementById('heroEps').textContent = fmt(r.eps, 2);
+      const baseDividendRate = Math.max(0, input.dividendRate / 100);
+      const dividendPerShare = r.parentNetYi * baseDividendRate / input.shares;
+      const dividendYield = dividendPerShare / input.stockPrice * 100;
+      document.getElementById('heroDividendPerShare').textContent = fmt(dividendPerShare, 3);
+      document.getElementById('heroDividendYield').textContent = fmt(dividendYield) + '%';
+      document.getElementById('heroDividendYieldLabel').textContent = `${fmt(input.dividendRate, 2)}%分红率股息率`;
+      document.getElementById('heroExplain').textContent = `含税铝价 ${fmt0(input.alPriceTax)} 元/吨，测算 EPS ${fmt(r.eps, 2)} 元/股，每股分红 ${fmt(dividendPerShare, 3)} 元。`;
+      document.getElementById('statAlPrice').textContent = fmt0(input.alPriceTax);
+      document.getElementById('statOutput').textContent = fmt0(input.ynOutput + input.xjOutput) + ' 万吨';
+      document.getElementById('statSensitivity').textContent = fmt(sensPer500) + ' 亿';
+      document.getElementById('statMinority').textContent = fmt(input.minorityRate) + '%';
+
+      renderBridge(r);
+      renderAssumptions(r);
+      renderCosts(r);
+      renderDividend(r);
+      updateCharts(r, sensitivityRows);
+      return { r, sensitivityRows, sensPer500 };
+    }
+
+    function summaryText() {
+      if (!lastResult) calculateAndRender();
+      const input = readInputs();
+      const r = lastResult;
+      const plus500 = calcModel(input, input.alPriceTax + 500).parentNetYi - r.parentNetYi;
+      const baseDividendRate = Math.max(0, input.dividendRate / 100);
+      const divBase = r.parentNetYi * baseDividendRate / input.shares;
+      const yieldBase = divBase / input.stockPrice * 100;
+      return `神火股份煤电铝一体化估值测算：\n1. 基准电解铝含税售价：${fmt0(input.alPriceTax)} 元/吨。\n2. 测算归母净利润：约 ${fmt(r.parentNetYi)} 亿元。\n3. EPS：约 ${fmt(r.eps, 2)} 元/股。\n4. 铝价每上升 500 元/吨，归母净利润约增加 ${fmt(plus500)} 亿元。\n5. 按 ${fmt(input.dividendRate, 2)}% 分红率，每股分红约 ${fmt(divBase, 3)} 元，按股价 ${fmt(input.stockPrice, 2)} 元测算股息率约 ${fmt(yieldBase)}%。\n说明：本模型为情景测算，不构成投资建议；分红方案以公司公告为准。`;
+    }
+
+    async function copySummary() {
+      const text = summaryText();
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('结果摘要已复制');
+      } catch (e) {
+        showToast('浏览器限制复制，请手动选择结果文本');
+        console.log(text);
+      }
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => el.classList.add('hidden'), 2200);
+    }
+
+    function initReveal() {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+      }, { threshold: .12 });
+      document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Object.entries(defaults).forEach(([k, v]) => set(k, v));
+      initReveal();
+      calculateAndRender();
+      document.getElementById('calcBtn').addEventListener('click', () => { calculateAndRender(); showToast('估值结果已更新'); });
+      document.getElementById('resetBtn').addEventListener('click', loadDefaults);
+      document.getElementById('copyBtn').addEventListener('click', copySummary);
+      document.getElementById('heroCopyBtn').addEventListener('click', copySummary);
+      document.getElementById('heroCalcBtn').addEventListener('click', () => { document.getElementById('inputs').scrollIntoView({ behavior: 'smooth' }); calculateAndRender(); });
+      document.querySelectorAll('input').forEach(input => input.addEventListener('change', calculateAndRender));
+    });
+  </script>
+</body>
+</html>
