@@ -8,10 +8,10 @@
   <meta name="description" content="国家队ETF份额监控：查看核心沪深300ETF的最新份额变化、份额余额与历史趋势。">
   <title>国家队 ETF 份额监控</title>
 
-  <!-- 本地依赖失败时，页面仍依靠下方内嵌 CSS 和原生数据表正常显示。 -->
-  <script src="../../assets/vendor/tailwindcss/4.3.3/browser.js"></script>
-  <link rel="stylesheet" href="../../assets/vendor/fontawesome/6.5.2/css/all.min.css">
-  <script src="../../assets/vendor/chartjs/4.4.7/chart.umd.min.js"></script>
+  <!-- CDN 库失败时，页面仍依靠下方内嵌 CSS 和原生数据表正常显示。 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 
   <style>
     :root {
@@ -547,41 +547,74 @@
 
     .mobile-records { display: none; }
 
-    .mobile-record {
-      padding: 22px;
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      background: var(--surface);
+    .mobile-scroll-hint {
+      margin: 0;
+      padding: 0 0 10px;
+      color: var(--subtle);
+      font-size: 11px;
+      text-align: right;
     }
 
-    .mobile-record + .mobile-record { margin-top: 12px; }
-
-    .mobile-record-head {
-      display: flex;
-      align-items: start;
-      justify-content: space-between;
-      gap: 18px;
-    }
-
-    .mobile-record-code { font-weight: 700; }
-    .mobile-record-name { margin-top: 5px; color: var(--muted); font-size: 13px; }
-
-    .mobile-record-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-top: 20px;
-      padding-top: 18px;
+    .mobile-history-scroll {
+      width: 100%;
+      overflow-x: auto;
+      overscroll-behavior-inline: contain;
       border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      scrollbar-width: thin;
+      scrollbar-color: var(--line-strong) transparent;
+      -webkit-overflow-scrolling: touch;
     }
 
-    .mobile-record-grid strong {
-      display: block;
-      margin-top: 6px;
-      font-size: 16px;
-      font-variant-numeric: tabular-nums;
+    .mobile-history-table {
+      width: 1390px;
+      min-width: 1390px;
+      table-layout: fixed;
+      border-collapse: collapse;
+      font-size: 13px;
     }
 
+    .mobile-history-table th,
+    .mobile-history-table td {
+      height: 52px;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--line);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mobile-history-table th {
+      position: static;
+      height: 40px;
+      color: var(--subtle);
+      font-size: 10px;
+      letter-spacing: 0.05em;
+    }
+
+    .mobile-history-table tbody tr:last-child td { border-bottom: 0; }
+    .mobile-history-table th:nth-child(1),
+    .mobile-history-table td:nth-child(1) { width: 170px; }
+    .mobile-history-table th:nth-child(2),
+    .mobile-history-table td:nth-child(2) { width: 180px; text-align: right; }
+    .mobile-history-table th:nth-child(3),
+    .mobile-history-table td:nth-child(3) { width: 160px; text-align: right; }
+    .mobile-history-table th:nth-child(4),
+    .mobile-history-table td:nth-child(4) { width: 90px; }
+    .mobile-history-table th:nth-child(5),
+    .mobile-history-table td:nth-child(5) { width: 150px; }
+    .mobile-history-table th:nth-child(6),
+    .mobile-history-table td:nth-child(6) { width: 170px; text-align: right; }
+    .mobile-history-table th:nth-child(7),
+    .mobile-history-table td:nth-child(7) { width: 260px; }
+    .mobile-history-table th:nth-child(8),
+    .mobile-history-table td:nth-child(8) { width: 210px; }
+
+    .mobile-date-column,
+    .mobile-history-table td:first-child { font-weight: 650; }
+
+    .mobile-change-column,
+    .mobile-history-change { font-variant-numeric: tabular-nums; }
     .records-view-title {
       margin: 0 0 14px;
       color: var(--muted);
@@ -1445,14 +1478,35 @@
         </tr>`;
       }).join("");
 
-      el.mobileRecords.innerHTML = records.map(record => {
-        const changeClass = record.change > 0 ? "positive-text" : "negative-text";
-        return `<article class="mobile-record">
-          <div class="mobile-record-head"><div><div class="mobile-record-code">${escapeHTML(record.code)}</div><div class="mobile-record-name">${escapeHTML(record.name)}</div></div><time class="muted num" datetime="${escapeHTML(record.date)}">${escapeHTML(formatDate(record.date))}</time></div>
-          <div class="mobile-record-grid"><div><span class="balance-label">份额变化/亿份</span><strong class="${changeClass}">${formatNumber(record.change, true)}</strong></div><div><span class="balance-label">份额余额/亿份</span><strong>${formatNumber(record.balance)}</strong></div></div>
-          <details class="data-details"><summary>查看数据详情</summary><div class="detail-panel">${detailHTML(record)}<div>状态：${escapeHTML(record.status)}</div></div></details>
-        </article>`;
-      }).join("");
+      el.mobileRecords.innerHTML = `<p class="mobile-scroll-hint"><i class="fa-solid fa-arrow-left-long" aria-hidden="true"></i> 左右滑动查看其他信息 <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i></p>
+        <div class="mobile-history-scroll" role="region" aria-label="单只ETF历史数据表，可左右滑动" tabindex="0">
+          <table class="mobile-history-table">
+            <caption class="sr-only">单只ETF历史数据</caption>
+            <thead><tr>
+              <th scope="col" class="mobile-date-column">日期</th>
+              <th scope="col" class="mobile-change-column">份额变化/亿份</th>
+              <th scope="col">份额余额/亿份</th>
+              <th scope="col">状态</th>
+              <th scope="col">前一工作日</th>
+              <th scope="col">前一日余额/亿份</th>
+              <th scope="col">数据源</th>
+              <th scope="col">更新时间</th>
+            </tr></thead>
+            <tbody>${records.map(record => {
+              const changeClass = record.change > 0 ? "positive-text" : "negative-text";
+              return `<tr>
+                <td class="num"><time datetime="${escapeHTML(record.date)}">${escapeHTML(formatDate(record.date))}</time></td>
+                <td class="mobile-history-change num ${changeClass}">${formatNumber(record.change, true)}</td>
+                <td class="num">${formatNumber(record.balance)}</td>
+                <td>${escapeHTML(record.status)}</td>
+                <td class="num">${escapeHTML(formatDate(record.prevDate))}</td>
+                <td class="num">${record.prevBalance === null ? "—" : formatNumber(record.prevBalance)}</td>
+                <td title="${escapeHTML(record.source || "—")}">${escapeHTML(record.source || "—")}</td>
+                <td class="num">${escapeHTML(formatLocalTime(record.updatedAt))}</td>
+              </tr>`;
+            }).join("")}</tbody>
+          </table>
+        </div>`;
     }
 
     function renderRecords() {
