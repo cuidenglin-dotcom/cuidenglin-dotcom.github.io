@@ -123,3 +123,7 @@ date,code,name,share_change_100m,share_balance_100m,prev_date,prev_share_balance
 20260717,510300.SH,华泰柏瑞沪深300etf,20.1510,217.1659,,,ok,ths-ifind-command:iwencai:fund,2026-07-19T23:31:07+00:00
 20260717,510310.SH,易方达沪深300etf,6.5160,106.2154,,,ok,ths-ifind-command:iwencai:fund,2026-07-19T23:31:07+00:00
 20260717,510330.SH,华夏沪深300etf,3.6270,82.5235,,,ok,ths-ifind-command:iwencai:fund,2026-07-19T23:31:07+00:00
+20260720,159919.SZ,嘉实沪深300etf,1.3500,63.7402,,,ok,ths-ifind-command:iwencai:fund,2026-07-20T23:31:24+00:00
+20260720,510300.SH,华泰柏瑞沪深300etf,27.0540,244.2199,,,ok,ths-ifind-command:iwencai:fund,2026-07-20T23:31:24+00:00
+20260720,510310.SH,易方达沪深300etf,3.9780,110.1934,,,ok,ths-ifind-command:iwencai:fund,2026-07-20T23:31:24+00:00
+20260720,510330.SH,华夏沪深300etf,1.3410,83.8645,,,ok,ths-ifind-command:iwencai:fund,2026-07-20T23:31:24+00:00
