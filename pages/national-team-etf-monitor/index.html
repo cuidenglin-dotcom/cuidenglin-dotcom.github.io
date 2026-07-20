@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="国家队ETF份额监控：查看核心沪深300ETF的最新份额变化、份额余额与历史趋势。">
+  <title>国家队 ETF 份额监控</title>
+
+  <!-- 本地依赖失败时，页面仍依靠下方内嵌 CSS 和原生数据表正常显示。 -->
+  <script src="../../assets/vendor/tailwindcss/4.3.3/browser.js"></script>
+  <link rel="stylesheet" href="../../assets/vendor/fontawesome/6.5.2/css/all.min.css">
+  <script src="../../assets/vendor/chartjs/4.4.7/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #000000;
+      --surface: #0a0a0b;
+      --surface-2: #111113;
+      --surface-hover: #151518;
+      --text: #f5f5f7;
+      --muted: #a1a1a6;
+      --subtle: #6e6e73;
+      --accent: #00aeef;
+      --line: rgba(255, 255, 255, 0.09);
+      --line-strong: rgba(255, 255, 255, 0.16);
+      --warning: #f5f5f7;
+      --content: 1280px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+
+    html { background: var(--bg); }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    button, select, summary { font: inherit; }
+    button, select { color: inherit; }
+    a { color: inherit; }
+    [hidden] { display: none !important; }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    :focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    .skip-link {
+      position: absolute;
+      z-index: 100;
+      top: 12px;
+      left: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: var(--text);
+      color: var(--bg);
+      transform: translateY(-180%);
+    }
+
+    .skip-link:focus { transform: translateY(0); }
+
+    .shell {
+      width: min(100%, var(--content));
+      margin: 0 auto;
+      padding-inline: 64px;
+    }
+
+    .topbar {
+      position: relative;
+      z-index: 10;
+      border-bottom: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.92);
+    }
+
+    .topbar-inner {
+      min-height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+    }
+
+    .brand-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 18px rgba(0, 174, 239, 0.5);
+    }
+
+    .topbar-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status-marker {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .status-marker.warning {
+      border: 1px solid var(--text);
+      background: transparent;
+    }
+
+    .notice {
+      width: min(calc(100% - 32px), calc(var(--content) - 128px));
+      margin: 18px auto 0;
+      padding: 13px 16px;
+      border: 1px dashed rgba(255, 255, 255, 0.3);
+      border-radius: 14px;
+      background: #101012;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .notice i { margin-right: 8px; color: var(--accent); }
+
+    .hero {
+      min-height: 570px;
+      display: grid;
+      align-items: center;
+      padding-block: 96px;
+      border-bottom: 1px solid var(--line);
+      background:
+        radial-gradient(circle at 78% 26%, rgba(0, 174, 239, 0.11), transparent 31%),
+        var(--bg);
+    }
+
+    .eyebrow {
+      margin: 0 0 18px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 920px;
+      margin: 0;
+      font-size: clamp(2.25rem, 5vw, 4rem);
+      line-height: 1.08;
+      letter-spacing: -0.055em;
+      font-weight: 750;
+    }
+
+    .hero-copy {
+      max-width: 660px;
+      margin: 24px 0 0;
+      color: var(--muted);
+      font-size: clamp(1rem, 1.8vw, 1.25rem);
+      line-height: 1.7;
+    }
+
+    .hero-meta {
+      display: grid;
+      grid-template-columns: minmax(240px, 1.25fr) repeat(2, minmax(170px, 1fr));
+      gap: 16px;
+      margin-top: 56px;
+    }
+
+    .meta-card {
+      min-height: 142px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(10, 10, 11, 0.88);
+    }
+
+    .meta-label {
+      margin: 0 0 12px;
+      color: var(--subtle);
+      font-size: 12px;
+      font-weight: 650;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .latest-date {
+      margin: 0;
+      font-size: clamp(2.55rem, 5vw, 4.4rem);
+      line-height: 1;
+      letter-spacing: -0.06em;
+      font-weight: 730;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .meta-value {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.45;
+      font-weight: 650;
+    }
+
+    .meta-sub {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+
+    .section {
+      padding-block: 112px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 32px;
+      margin-bottom: 40px;
+    }
+
+    .section-kicker {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: clamp(1.8rem, 3.5vw, 2.55rem);
+      line-height: 1.15;
+      letter-spacing: -0.04em;
+      font-weight: 720;
+    }
+
+    .section-note {
+      max-width: 450px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+      text-align: right;
+    }
+
+    .etf-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .etf-card {
+      min-height: 330px;
+      display: flex;
+      flex-direction: column;
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(145deg, #111113 0%, #09090a 100%);
+    }
+
+    .etf-card:hover { border-color: rgba(0, 174, 239, 0.56); }
+    .etf-card.missing { border-style: dashed; }
+
+    .etf-code-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .etf-code {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .direction {
+      color: var(--accent);
+      font-size: 15px;
+    }
+
+    .direction.negative, .direction.zero { color: var(--muted); }
+
+    .change-number {
+      margin-top: 38px;
+      color: var(--accent);
+      font-size: clamp(2rem, 3.3vw, 2.8rem);
+      line-height: 1;
+      letter-spacing: -0.055em;
+      font-weight: 740;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .change-number.negative, .change-number.zero { color: var(--text); }
+
+    .change-unit {
+      margin-top: 8px;
+      color: var(--subtle);
+      font-size: 12px;
+    }
+
+    .etf-name {
+      margin: 28px 0 0;
+      min-height: 46px;
+      font-size: 15px;
+      line-height: 1.55;
+      font-weight: 650;
+    }
+
+    .card-bottom {
+      margin-top: auto;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+    }
+
+    .balance-label {
+      color: var(--subtle);
+      font-size: 12px;
+    }
+
+    .balance-value {
+      margin-top: 6px;
+      font-size: 17px;
+      font-weight: 650;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .record-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .record-status::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .record-status.warning::before {
+      border: 1px solid var(--text);
+      background: transparent;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .control-group {
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      padding: 5px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--surface);
+    }
+
+    .control-button {
+      min-height: 40px;
+      padding: 9px 14px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .control-button:hover { color: var(--text); }
+
+    .control-button.active,
+    .control-button[aria-pressed="true"] {
+      background: var(--surface-2);
+      color: var(--accent);
+      box-shadow: inset 0 0 0 1px rgba(0, 174, 239, 0.25);
+    }
+
+    .chart-card {
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--surface);
+    }
+
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+      height: 440px;
+    }
+
+    .chart-fallback {
+      min-height: 240px;
+      display: grid;
+      place-items: center;
+      padding: 30px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 16px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.7;
+    }
+
+    .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .filter-label {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .select-control {
+      min-height: 44px;
+      padding: 8px 36px 8px 13px;
+      border: 1px solid var(--line-strong);
+      border-radius: 11px;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .table-shell {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--surface);
+    }
+
+    table {
+      width: 100%;
+      min-width: 960px;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 17px 18px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #0d0d0f;
+      color: var(--subtle);
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover td { background: var(--surface-hover); }
+
+    .num {
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .positive-text { color: var(--accent); }
+    .negative-text { color: var(--text); }
+    .muted { color: var(--muted); }
+
+    details.data-details summary {
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      color: var(--accent);
+      cursor: pointer;
+      list-style: none;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    details.data-details summary::-webkit-details-marker { display: none; }
+
+    .detail-panel {
+      min-width: 260px;
+      margin-top: 8px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #080809;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.75;
+      overflow-wrap: anywhere;
+    }
+
+    .mobile-records { display: none; }
+
+    .mobile-record {
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--surface);
+    }
+
+    .mobile-record + .mobile-record { margin-top: 12px; }
+
+    .mobile-record-head {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .mobile-record-code { font-weight: 700; }
+    .mobile-record-name { margin-top: 5px; color: var(--muted); font-size: 13px; }
+
+    .mobile-record-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .mobile-record-grid strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 16px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .records-view-title {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .matrix-table { min-width: 680px; }
+    .matrix-table th:not(:first-child),
+    .matrix-table td:not(:first-child) { text-align: right; }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-top: 18px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface);
+    }
+
+    .pagination-summary,
+    .page-size-control {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .pagination-left,
+    .pagination-controls,
+    .page-numbers {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .page-size-select {
+      min-height: 40px;
+      margin-left: 6px;
+      padding: 7px 28px 7px 10px;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      background: #0d0d0f;
+      color: var(--text);
+    }
+
+    .page-button {
+      min-width: 40px;
+      min-height: 40px;
+      padding: 8px 11px;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      background: #0d0d0f;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .page-button:hover:not(:disabled) {
+      border-color: rgba(0, 174, 239, 0.55);
+      color: var(--text);
+    }
+
+    .page-button[aria-current="page"] {
+      border-color: rgba(0, 174, 239, 0.55);
+      color: var(--accent);
+    }
+
+    .page-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.38;
+    }
+
+    .page-ellipsis {
+      min-width: 22px;
+      color: var(--subtle);
+      text-align: center;
+    }
+
+    .empty-state {
+      padding: 38px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 18px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .footer {
+      padding-block: 42px 54px;
+      color: var(--subtle);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    @media (max-width: 1023px) {
+      .shell { padding-inline: 32px; }
+      .notice { width: calc(100% - 64px); }
+      .hero-meta { grid-template-columns: 1.4fr 1fr; }
+      .hero-meta .meta-card:last-child { grid-column: 1 / -1; }
+      .etf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .chart-wrap { height: 390px; }
+      .section { padding-block: 88px; }
+    }
+
+    @media (max-width: 639px) {
+      .shell { padding-inline: 18px; }
+      .notice { width: calc(100% - 36px); margin-top: 12px; }
+      .topbar-inner { min-height: 58px; }
+      .topbar-status span:last-child { display: none; }
+      .hero { min-height: auto; padding-block: 72px; }
+      .hero-copy { margin-top: 18px; }
+      .hero-meta { grid-template-columns: 1fr; margin-top: 42px; }
+      .hero-meta .meta-card:last-child { grid-column: auto; }
+      .meta-card { min-height: 126px; padding: 21px; }
+      .section { padding-block: 72px; }
+      .section-head { display: block; margin-bottom: 28px; }
+      .section-note { margin-top: 14px; text-align: left; }
+      .etf-grid { grid-template-columns: 1fr; }
+      .etf-card { min-height: 308px; padding: 24px; }
+      .controls { align-items: stretch; }
+      .control-group { width: 100%; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
+      .control-button { min-width: 0; padding-inline: 8px; }
+      .chart-card { padding: 18px 12px 18px 8px; border-radius: 18px; }
+      .chart-wrap { height: 340px; }
+      .filter-row { width: 100%; justify-content: space-between; }
+      .select-control { flex: 1; min-width: 0; }
+      .table-shell { display: none; }
+      .table-shell.matrix-mode { display: block; }
+      .table-shell.matrix-mode th:first-child,
+      .table-shell.matrix-mode td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background: #0d0d0f;
+      }
+      .mobile-records { display: block; }
+      .pagination { display: block; }
+      .pagination-left { justify-content: space-between; }
+      .pagination-controls { justify-content: space-between; margin-top: 12px; }
+      .page-numbers .page-button:not([aria-current="page"]) { display: none; }
+      .footer-inner { display: block; }
+      .footer-inner p + p { margin-top: 10px; }
+    }
+  </style>
+</head>
+
+<body>
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
+
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <div class="brand" aria-label="国家队ETF份额监控">
+        <span class="brand-dot" aria-hidden="true"></span>
+        <span>国家队 ETF 份额监控</span>
+      </div>
+      <div class="topbar-status" aria-live="polite">
+        <span id="topStatusMarker" class="status-marker" aria-hidden="true"></span>
+        <span id="topStatusText">正在读取后台数据</span>
+      </div>
+    </div>
+  </header>
+
+  <div id="dataNotice" class="notice" role="status" aria-live="polite" hidden></div>
+
+  <main id="main-content">
+    <section class="hero" aria-labelledby="pageTitle">
+      <div class="shell">
+        <p class="eyebrow">National Team ETF Share Monitor</p>
+        <h1 id="pageTitle">国家队 ETF 份额监控</h1>
+        <p class="hero-copy">跟踪核心沪深300 ETF 的每日份额变化、份额余额与历史趋势。</p>
+
+        <div class="hero-meta" aria-label="数据摘要">
+          <article class="meta-card">
+            <p class="meta-label">最新数据日期</p>
+            <p id="latestDate" class="latest-date">—</p>
+          </article>
+          <article class="meta-card">
+            <p class="meta-label">数据记录</p>
+            <p id="recordState" class="meta-value">读取中</p>
+            <p id="recordStateSub" class="meta-sub">正在校验后台CSV</p>
+          </article>
+          <article class="meta-card">
+            <p class="meta-label">缓存更新时间</p>
+            <p id="updatedAt" class="meta-value">—</p>
+            <p id="sourceName" class="meta-sub">数据来源：—</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="latestHeading">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">Latest Session</p>
+            <h2 id="latestHeading">最近一个工作日</h2>
+          </div>
+          <p id="latestSectionNote" class="section-note">每只ETF独立展示。</p>
+        </div>
+        <div id="latestCards" class="etf-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="historyHeading">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">Historical View</p>
+            <h2 id="historyHeading">历史变化</h2>
+          </div>
+          <p class="section-note">切换份额变化与份额余额；图例可单独隐藏或显示ETF。</p>
+        </div>
+
+        <div class="controls" aria-label="图表控制">
+          <div class="control-group" role="group" aria-label="指标">
+            <button class="control-button metric-button active" type="button" data-metric="change" aria-pressed="true">份额变化</button>
+            <button class="control-button metric-button" type="button" data-metric="balance" aria-pressed="false">份额余额</button>
+          </div>
+          <div class="control-group" role="group" aria-label="日期范围">
+            <button class="control-button range-button active" type="button" data-range="5" aria-pressed="true">5日</button>
+            <button class="control-button range-button" type="button" data-range="20" aria-pressed="false">20日</button>
+            <button class="control-button range-button" type="button" data-range="60" aria-pressed="false">60日</button>
+            <button class="control-button range-button" type="button" data-range="all" aria-pressed="false">全部</button>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div id="chartWrap" class="chart-wrap">
+            <canvas id="historyChart" role="img" aria-label="四只ETF的历史份额变化图"></canvas>
+          </div>
+          <div id="chartFallback" class="chart-fallback" hidden>
+            <p><i class="fa-solid fa-chart-column" aria-hidden="true"></i><br>图表组件暂时不可用，请查看下方历史数据。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="recordsHeading">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">Source Records</p>
+            <h2 id="recordsHeading">历史数据明细</h2>
+          </div>
+          <div class="filter-row">
+            <label class="filter-label" for="etfFilter">筛选ETF</label>
+            <select id="etfFilter" class="select-control">
+              <option value="all">全部ETF</option>
+              <option value="510300.SH">510300.SH</option>
+              <option value="510330.SH">510330.SH</option>
+              <option value="510310.SH">510310.SH</option>
+              <option value="159919.SZ">159919.SZ</option>
+            </select>
+          </div>
+        </div>
+
+        <p id="recordsViewTitle" class="records-view-title">工作日份额变化（亿份）</p>
+        <div id="tableShell" class="table-shell matrix-mode">
+          <table id="recordsTable" class="matrix-table">
+            <caption class="sr-only">ETF历史份额数据</caption>
+            <thead id="recordsHead"></thead>
+            <tbody id="recordsBody"></tbody>
+          </table>
+        </div>
+        <div id="mobileRecords" class="mobile-records" aria-label="移动端ETF历史数据"></div>
+        <div id="emptyRecords" class="empty-state" hidden>当前筛选条件下没有数据。</div>
+
+        <nav id="pagination" class="pagination" aria-label="历史数据分页">
+          <div class="pagination-left">
+            <label class="page-size-control" for="pageSize">每页
+              <select id="pageSize" class="page-size-select">
+                <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+            </label>
+            <span id="paginationSummary" class="pagination-summary" aria-live="polite"></span>
+          </div>
+          <div id="paginationControls" class="pagination-controls"></div>
+        </nav>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="shell footer-inner">
+      <p>本页面仅用于份额数据监测，不构成投资建议。</p>
+      <p id="footerSource">当前数据来源：读取中</p>
+    </div>
+  </footer>
+
+  <script>
+    "use strict";
+
+    /*
+      后台维护入口：
+      1. Cron 或后台程序更新与本 HTML 同目录的 etf_history.csv。
+      2. 如后台改为 API，只需修改 DATA_URL；接口仍返回相同 CSV 文本即可。
+      3. 页面不提供前台上传入口，避免访问者误改数据。
+    */
+    const DATA_URL = "./etf_history.csv";
+    const ETF_ORDER = ["510300.SH", "510330.SH", "510310.SH", "159919.SZ"];
+    const ETF_FALLBACK_NAMES = {
+      "510300.SH": "华泰柏瑞沪深300ETF",
+      "510330.SH": "华夏沪深300ETF",
+      "510310.SH": "易方达沪深300ETF",
+      "159919.SZ": "嘉实沪深300ETF"
+    };
+
+    const REQUIRED_HEADERS = [
+      "date", "code", "name", "share_change_100m", "share_balance_100m",
+      "prev_date", "prev_share_balance_100m", "status", "source", "updated_at"
+    ];
+
+    /* 内嵌数据只在后台CSV不可用时启用，并会在页面显著标注“备用数据”。 */
+    const EMBEDDED_CSV = `date,code,name,share_change_100m,share_balance_100m,prev_date,prev_share_balance_100m,status,source,updated_at
+20260713,510300.SH,华泰柏瑞沪深300ETF,11.6370,183.2089,20260710,171.5719,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260713,510330.SH,华夏沪深300ETF,1.3230,77.1055,20260710,75.7825,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260713,510310.SH,易方达沪深300ETF,2.5110,94.2814,20260710,91.7704,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260713,159919.SZ,嘉实沪深300ETF,2.2950,56.0992,20260710,53.8042,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260714,510300.SH,华泰柏瑞沪深300ETF,1.6110,184.8199,20260713,183.2089,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260714,510330.SH,华夏沪深300ETF,0.3870,77.4925,20260713,77.1055,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260714,510310.SH,易方达沪深300ETF,2.3220,96.6034,20260713,94.2814,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260714,159919.SZ,嘉实沪深300ETF,0.0450,56.1442,20260713,56.0992,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260715,510300.SH,华泰柏瑞沪深300ETF,-0.8640,183.9559,20260714,184.8199,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260715,510330.SH,华夏沪深300ETF,0.1620,77.6545,20260714,77.4925,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260715,510310.SH,易方达沪深300ETF,0.9360,97.5394,20260714,96.6034,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260715,159919.SZ,嘉实沪深300ETF,-0.4500,55.6942,20260714,56.1442,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260716,510300.SH,华泰柏瑞沪深300ETF,13.0590,197.0149,20260715,183.9559,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260716,510330.SH,华夏沪深300ETF,1.2420,78.8965,20260715,77.6545,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260716,510310.SH,易方达沪深300ETF,2.1600,99.6994,20260715,97.5394,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260716,159919.SZ,嘉实沪深300ETF,1.1430,56.8372,20260715,55.6942,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260717,510300.SH,华泰柏瑞沪深300ETF,20.1510,217.1659,20260716,197.0149,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260717,510330.SH,华夏沪深300ETF,3.6270,82.5235,20260716,78.8965,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260717,510310.SH,易方达沪深300ETF,6.5160,106.2154,20260716,99.6994,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00
+20260717,159919.SZ,嘉实沪深300ETF,5.5530,62.3902,20260716,56.8372,ok,ths-ifind-command:iwencai:fund,2026-07-17T02:12:37+00:00`;
+
+    const state = {
+      records: [],
+      sourceMode: "loading",
+      warnings: [],
+      metric: "change",
+      range: 5,
+      etfFilter: "all",
+      page: 1,
+      pageSize: 20,
+      chart: null
+    };
+
+    const el = {
+      notice: document.getElementById("dataNotice"),
+      topStatusText: document.getElementById("topStatusText"),
+      topStatusMarker: document.getElementById("topStatusMarker"),
+      latestDate: document.getElementById("latestDate"),
+      recordState: document.getElementById("recordState"),
+      recordStateSub: document.getElementById("recordStateSub"),
+      updatedAt: document.getElementById("updatedAt"),
+      sourceName: document.getElementById("sourceName"),
+      latestSectionNote: document.getElementById("latestSectionNote"),
+      latestCards: document.getElementById("latestCards"),
+      chartWrap: document.getElementById("chartWrap"),
+      chartFallback: document.getElementById("chartFallback"),
+      recordsHead: document.getElementById("recordsHead"),
+      recordsBody: document.getElementById("recordsBody"),
+      recordsTable: document.getElementById("recordsTable"),
+      mobileRecords: document.getElementById("mobileRecords"),
+      tableShell: document.getElementById("tableShell"),
+      emptyRecords: document.getElementById("emptyRecords"),
+      recordsViewTitle: document.getElementById("recordsViewTitle"),
+      pagination: document.getElementById("pagination"),
+      paginationSummary: document.getElementById("paginationSummary"),
+      paginationControls: document.getElementById("paginationControls"),
+      pageSize: document.getElementById("pageSize"),
+      etfFilter: document.getElementById("etfFilter"),
+      footerSource: document.getElementById("footerSource")
+    };
+
+    function escapeHTML(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    /* 支持引号、转义引号、逗号和 CRLF，避免名称或来源字段破坏列结构。 */
+    function parseCSVRows(text) {
+      const rows = [];
+      let row = [];
+      let field = "";
+      let quoted = false;
+      const input = String(text).replace(/^\uFEFF/, "");
+
+      for (let i = 0; i < input.length; i += 1) {
+        const char = input[i];
+        const next = input[i + 1];
+
+        if (quoted) {
+          if (char === '"' && next === '"') {
+            field += '"';
+            i += 1;
+          } else if (char === '"') {
+            quoted = false;
+          } else {
+            field += char;
+          }
+        } else if (char === '"') {
+          quoted = true;
+        } else if (char === ",") {
+          row.push(field);
+          field = "";
+        } else if (char === "\n" || char === "\r") {
+          if (char === "\r" && next === "\n") i += 1;
+          row.push(field);
+          if (row.some(cell => cell.trim() !== "")) rows.push(row);
+          row = [];
+          field = "";
+        } else {
+          field += char;
+        }
+      }
+
+      if (quoted) throw new Error("CSV存在未闭合的引号");
+      row.push(field);
+      if (row.some(cell => cell.trim() !== "")) rows.push(row);
+      return rows;
+    }
+
+    function toFiniteNumber(value) {
+      if (String(value).trim() === "") return null;
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
+    }
+
+    function parseData(text) {
+      const rows = parseCSVRows(text);
+      if (rows.length < 2) throw new Error("CSV没有可用数据行");
+
+      const headers = rows[0].map(header => header.trim());
+      const missingHeaders = REQUIRED_HEADERS.filter(header => !headers.includes(header));
+      if (missingHeaders.length) throw new Error(`CSV缺少字段：${missingHeaders.join("、")}`);
+
+      const warnings = [];
+      const deduped = new Map();
+
+      rows.slice(1).forEach((cells, index) => {
+        const raw = {};
+        headers.forEach((header, cellIndex) => {
+          raw[header] = String(cells[cellIndex] ?? "").trim();
+        });
+
+        const change = toFiniteNumber(raw.share_change_100m);
+        const balance = toFiniteNumber(raw.share_balance_100m);
+        const prevBalance = toFiniteNumber(raw.prev_share_balance_100m);
+        const dateValid = /^\d{8}$/.test(raw.date);
+        const prevDateValid = raw.prev_date === "" || /^\d{8}$/.test(raw.prev_date);
+
+        if (!dateValid || !raw.code || !raw.name || change === null || balance === null || !raw.status) {
+          warnings.push(`第${index + 2}行核心字段无效`);
+          return;
+        }
+
+        if (!prevDateValid) warnings.push(`第${index + 2}行前一日期无效，已按空值处理`);
+        if (raw.prev_share_balance_100m !== "" && prevBalance === null) {
+          warnings.push(`第${index + 2}行前一日余额无效，已按空值处理`);
+        }
+
+        const updatedTime = Date.parse(raw.updated_at);
+        if (!Number.isFinite(updatedTime)) warnings.push(`第${index + 2}行缓存更新时间无效`);
+
+        const record = {
+          date: raw.date,
+          code: raw.code,
+          name: raw.name,
+          change,
+          balance,
+          prevDate: prevDateValid ? raw.prev_date : "",
+          prevBalance,
+          status: raw.status,
+          source: raw.source,
+          updatedAt: raw.updated_at,
+          updatedTime: Number.isFinite(updatedTime) ? updatedTime : null
+        };
+
+        const key = `${record.date}|${record.code}`;
+        const existing = deduped.get(key);
+        if (!existing || (record.updatedTime ?? 0) >= (existing.updatedTime ?? 0)) {
+          if (existing) warnings.push(`${record.date} ${record.code}存在重复记录，已保留较新记录`);
+          deduped.set(key, record);
+        }
+      });
+
+      const records = Array.from(deduped.values()).sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        return ETF_ORDER.indexOf(a.code) - ETF_ORDER.indexOf(b.code);
+      });
+
+      if (!records.length) throw new Error("CSV校验后没有有效记录");
+      return { records, warnings };
+    }
+
+    function formatDate(raw, dotted = false) {
+      if (!/^\d{8}$/.test(String(raw))) return "—";
+      const year = raw.slice(0, 4);
+      const month = raw.slice(4, 6);
+      const day = raw.slice(6, 8);
+      return dotted ? `${year}.${month}.${day}` : `${year}-${month}-${day}`;
+    }
+
+    function formatNumber(value, signed = false) {
+      if (!Number.isFinite(value)) return "—";
+      const prefix = signed && value > 0 ? "+" : "";
+      return `${prefix}${value.toFixed(4)}`;
+    }
+
+    function formatLocalTime(value) {
+      const date = new Date(value);
+      if (!Number.isFinite(date.getTime())) return "时间未知";
+      return new Intl.DateTimeFormat("zh-CN", {
+        timeZone: "Asia/Shanghai",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      }).format(date).replaceAll("/", ".");
+    }
+
+    function friendlySource(source) {
+      if (String(source).includes("iwencai")) return "同花顺 i问财";
+      return source || "未知来源";
+    }
+
+    function getLatestDate() {
+      return state.records.reduce((latest, record) => record.date > latest ? record.date : latest, "");
+    }
+
+    function latestRows() {
+      const latest = getLatestDate();
+      return state.records.filter(record => record.date === latest);
+    }
+
+    function setNotice(message) {
+      if (!message) {
+        el.notice.hidden = true;
+        el.notice.textContent = "";
+        return;
+      }
+      el.notice.hidden = false;
+      el.notice.innerHTML = `<i class="fa-solid fa-circle-info" aria-hidden="true"></i>${escapeHTML(message)}`;
+    }
+
+    function renderHeader() {
+      const latest = getLatestDate();
+      const rows = latestRows();
+      const byCode = new Map(rows.map(record => [record.code, record]));
+      const missing = ETF_ORDER.filter(code => !byCode.has(code));
+      const abnormal = rows.filter(record => record.status.toLowerCase() !== "ok");
+      const latestUpdated = state.records.reduce((best, record) => {
+        return (record.updatedTime ?? 0) > (best?.updatedTime ?? 0) ? record : best;
+      }, null);
+      const age = latestUpdated?.updatedTime ? Date.now() - latestUpdated.updatedTime : null;
+      const stale = age !== null && age > 7 * 24 * 60 * 60 * 1000;
+
+      el.latestDate.textContent = formatDate(latest, true);
+      el.updatedAt.textContent = latestUpdated ? formatLocalTime(latestUpdated.updatedAt) : "时间未知";
+      el.sourceName.textContent = `数据来源：${friendlySource(latestUpdated?.source)}`;
+
+      let recordLabel = "数据记录正常";
+      let recordSub = "最新交易日记录已通过校验";
+      let warning = false;
+
+      if (state.sourceMode === "fallback") {
+        recordLabel = "当前为备用数据";
+        recordSub = "后台CSV暂时不可用";
+        warning = true;
+      } else if (missing.length || abnormal.length) {
+        recordLabel = "数据记录不完整";
+        recordSub = missing.length ? `缺少：${missing.join("、")}` : `${abnormal.length}条状态异常`;
+        warning = true;
+      } else if (stale) {
+        recordLabel = "请核对数据日期";
+        recordSub = "缓存更新时间距今已超过7天";
+        warning = true;
+      }
+
+      el.recordState.textContent = recordLabel;
+      el.recordStateSub.textContent = recordSub;
+      el.topStatusText.textContent = recordLabel;
+      el.topStatusMarker.classList.toggle("warning", warning);
+      el.latestSectionNote.textContent = `数据日期 ${formatDate(latest)} · 每只ETF独立展示`;
+      el.footerSource.textContent = `当前数据来源：${state.sourceMode === "backend" ? "后台CSV" : "内嵌备用数据"} · ${friendlySource(latestUpdated?.source)}`;
+    }
+
+    function renderLatestCards() {
+      const rows = new Map(latestRows().map(record => [record.code, record]));
+      el.latestCards.innerHTML = ETF_ORDER.map(code => {
+        const record = rows.get(code);
+        if (!record) {
+          return `
+            <article class="etf-card missing">
+              <div class="etf-code-row">
+                <span class="etf-code">${escapeHTML(code)}</span>
+                <span class="direction zero" aria-hidden="true">—</span>
+              </div>
+              <div class="change-number zero">—</div>
+              <div class="change-unit">亿份</div>
+              <h3 class="etf-name">${escapeHTML(ETF_FALLBACK_NAMES[code])}</h3>
+              <div class="card-bottom">
+                <div class="balance-label">份额余额</div>
+                <div class="balance-value">—</div>
+                <div class="record-status warning">该交易日数据缺失</div>
+              </div>
+            </article>`;
+        }
+
+        const directionClass = record.change < 0 ? "negative" : record.change === 0 ? "zero" : "positive";
+        const directionIcon = record.change < 0 ? "↓" : record.change === 0 ? "—" : "↑";
+        const statusOK = record.status.toLowerCase() === "ok";
+
+        return `
+          <article class="etf-card">
+            <div class="etf-code-row">
+              <span class="etf-code">${escapeHTML(record.code)}</span>
+              <span class="direction ${directionClass}" aria-hidden="true">${directionIcon}</span>
+            </div>
+            <div class="change-number ${directionClass}">${formatNumber(record.change, true)}</div>
+            <div class="change-unit">亿份 · 份额变化</div>
+            <h3 class="etf-name">${escapeHTML(record.name)}</h3>
+            <div class="card-bottom">
+              <div class="balance-label">份额余额</div>
+              <div class="balance-value">${formatNumber(record.balance)} 亿份</div>
+              <div class="record-status ${statusOK ? "" : "warning"}">${statusOK ? "数据记录正常" : `状态：${escapeHTML(record.status)}`}</div>
+            </div>
+          </article>`;
+      }).join("");
+    }
+
+    function uniqueDates() {
+      return [...new Set(state.records.map(record => record.date))].sort();
+    }
+
+    function datesForRange() {
+      const dates = uniqueDates();
+      return state.range === "all" ? dates : dates.slice(-Number(state.range));
+    }
+
+    function renderChart() {
+      if (typeof window.Chart === "undefined") {
+        el.chartWrap.hidden = true;
+        el.chartFallback.hidden = false;
+        return;
+      }
+
+      el.chartWrap.hidden = false;
+      el.chartFallback.hidden = true;
+
+      const dates = datesForRange();
+      const opacity = [1, 0.76, 0.56, 0.36];
+      const dash = [[], [10, 5], [3, 4], [12, 4, 3, 4]];
+      const points = ["circle", "rect", "triangle", "rectRot"];
+      const isBalance = state.metric === "balance";
+      const chartType = isBalance ? "line" : "bar";
+
+      const datasets = ETF_ORDER.map((code, index) => {
+        const values = dates.map(date => {
+          const record = state.records.find(item => item.date === date && item.code === code);
+          return record ? (isBalance ? record.balance : record.change) : null;
+        });
+        const base = {
+          label: code,
+          data: values,
+          borderColor: `rgba(0, 174, 239, ${opacity[index]})`,
+          backgroundColor: `rgba(0, 174, 239, ${Math.max(0.18, opacity[index] * 0.68)})`,
+          borderWidth: isBalance ? 2 : 1,
+          pointStyle: points[index],
+          pointRadius: isBalance ? 3 : 0,
+          pointHoverRadius: isBalance ? 5 : 0,
+          spanGaps: false
+        };
+        if (isBalance) {
+          base.borderDash = dash[index];
+          base.tension = 0;
+          base.fill = false;
+        } else {
+          base.borderRadius = 3;
+          base.borderSkipped = false;
+          base.maxBarThickness = 44;
+        }
+        return base;
+      });
+
+      if (state.chart) state.chart.destroy();
+      const context = document.getElementById("historyChart").getContext("2d");
+      state.chart = new Chart(context, {
+        type: chartType,
+        data: { labels: dates.map(date => formatDate(date)), datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          normalized: true,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: {
+                color: "#a1a1a6",
+                padding: 20,
+                usePointStyle: true,
+                boxWidth: 8,
+                font: { family: "-apple-system, BlinkMacSystemFont, PingFang SC, sans-serif", size: 12 }
+              }
+            },
+            tooltip: {
+              animation: false,
+              backgroundColor: "#18181b",
+              borderColor: "rgba(255,255,255,.14)",
+              borderWidth: 1,
+              titleColor: "#f5f5f7",
+              bodyColor: "#f5f5f7",
+              padding: 13,
+              callbacks: {
+                label(context) {
+                  const record = state.records.find(item => item.date === dates[context.dataIndex] && item.code === context.dataset.label);
+                  const name = record?.name || ETF_FALLBACK_NAMES[context.dataset.label] || "";
+                  const value = context.parsed.y;
+                  const formatted = isBalance ? formatNumber(value) : formatNumber(value, true);
+                  return `${context.dataset.label} ${name}：${formatted} 亿份`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: "#6e6e73", maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
+              border: { color: "rgba(255,255,255,.12)" }
+            },
+            y: {
+              grid: {
+                color(context) {
+                  return context.tick.value === 0 ? "rgba(255,255,255,.28)" : "rgba(255,255,255,.07)";
+                }
+              },
+              ticks: {
+                color: "#6e6e73",
+                callback(value) { return Number(value).toFixed(Number.isInteger(value) ? 0 : 1); }
+              },
+              border: { display: false },
+              title: {
+                display: true,
+                text: isBalance ? "份额余额 / 亿份" : "份额变化 / 亿份",
+                color: "#6e6e73",
+                font: { size: 11 }
+              }
+            }
+          }
+        }
+      });
+
+      document.getElementById("historyChart").setAttribute(
+        "aria-label",
+        `四只ETF最近${state.range === "all" ? "全部" : state.range + "个工作日"}的${isBalance ? "份额余额" : "份额变化"}图`
+      );
+    }
+
+    function filteredRecords() {
+      return state.records
+        .filter(record => state.etfFilter === "all" || record.code === state.etfFilter)
+        .sort((a, b) => b.date.localeCompare(a.date) || ETF_ORDER.indexOf(a.code) - ETF_ORDER.indexOf(b.code));
+    }
+
+    function matrixRows() {
+      return [...new Set(state.records.map(record => record.date))]
+        .sort((a, b) => b.localeCompare(a))
+        .map(date => ({
+          date,
+          records: new Map(state.records.filter(record => record.date === date).map(record => [record.code, record]))
+        }));
+    }
+
+    function detailHTML(record) {
+      return `
+        <div>前一日期：${escapeHTML(formatDate(record.prevDate))}</div>
+        <div>前一日份额余额：${record.prevBalance === null ? "—" : `${formatNumber(record.prevBalance)} 亿份`}</div>
+        <div>数据来源：${escapeHTML(record.source || "—")}</div>
+        <div>缓存更新时间：${escapeHTML(formatLocalTime(record.updatedAt))}</div>`;
+    }
+
+    function pageNumberItems(totalPages, currentPage) {
+      if (totalPages <= 7) return Array.from({ length: totalPages }, (_, index) => index + 1);
+      const items = [1];
+      if (currentPage > 4) items.push("ellipsis-start");
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let page = start; page <= end; page += 1) items.push(page);
+      if (currentPage < totalPages - 3) items.push("ellipsis-end");
+      items.push(totalPages);
+      return items;
+    }
+
+    function renderPagination(totalItems, unitLabel) {
+      const totalPages = Math.max(1, Math.ceil(totalItems / state.pageSize));
+      state.page = Math.min(Math.max(1, state.page), totalPages);
+      const start = totalItems ? (state.page - 1) * state.pageSize + 1 : 0;
+      const end = Math.min(state.page * state.pageSize, totalItems);
+      el.pagination.hidden = totalItems === 0;
+      el.paginationSummary.textContent = `第 ${start}–${end} ${unitLabel}，共 ${totalItems} ${unitLabel}`;
+
+      const pages = pageNumberItems(totalPages, state.page).map(item => {
+        if (typeof item !== "number") return '<span class="page-ellipsis" aria-hidden="true">…</span>';
+        return `<button type="button" class="page-button" data-page="${item}" ${item === state.page ? 'aria-current="page"' : ""} aria-label="第${item}页">${item}</button>`;
+      }).join("");
+
+      el.paginationControls.innerHTML = `
+        <button type="button" class="page-button" data-page="${state.page - 1}" ${state.page === 1 ? "disabled" : ""} aria-label="上一页">上一页</button>
+        <div class="page-numbers">${pages}</div>
+        <button type="button" class="page-button" data-page="${state.page + 1}" ${state.page === totalPages ? "disabled" : ""} aria-label="下一页">下一页</button>`;
+    }
+
+    function renderMatrixRows(rows) {
+      el.recordsHead.innerHTML = `<tr><th scope="col">日期</th>${ETF_ORDER.map(code => `<th scope="col">${escapeHTML(code)}</th>`).join("")}</tr>`;
+      el.recordsBody.innerHTML = rows.map(row => `
+        <tr>
+          <td class="num"><strong>${escapeHTML(formatDate(row.date))}</strong></td>
+          ${ETF_ORDER.map(code => {
+            const record = row.records.get(code);
+            if (!record) return '<td class="num muted" aria-label="数据缺失">—</td>';
+            const valueClass = record.change > 0 ? "positive-text" : "negative-text";
+            return `<td class="num ${valueClass}">${formatNumber(record.change, true)}</td>`;
+          }).join("")}
+        </tr>`).join("");
+    }
+
+    function renderDetailedRows(records) {
+      el.recordsHead.innerHTML = `<tr>
+        <th scope="col">日期</th><th scope="col">ETF代码</th><th scope="col">名称</th>
+        <th scope="col">份额变化/亿份</th><th scope="col">份额余额/亿份</th>
+        <th scope="col">状态</th><th scope="col">数据详情</th>
+      </tr>`;
+
+      el.recordsBody.innerHTML = records.map(record => {
+        const changeClass = record.change > 0 ? "positive-text" : "negative-text";
+        return `<tr>
+          <td class="num">${escapeHTML(formatDate(record.date))}</td>
+          <td><strong>${escapeHTML(record.code)}</strong></td>
+          <td>${escapeHTML(record.name)}</td>
+          <td class="num ${changeClass}">${formatNumber(record.change, true)}</td>
+          <td class="num">${formatNumber(record.balance)}</td>
+          <td class="muted">${escapeHTML(record.status)}</td>
+          <td><details class="data-details"><summary>查看</summary><div class="detail-panel">${detailHTML(record)}</div></details></td>
+        </tr>`;
+      }).join("");
+
+      el.mobileRecords.innerHTML = records.map(record => {
+        const changeClass = record.change > 0 ? "positive-text" : "negative-text";
+        return `<article class="mobile-record">
+          <div class="mobile-record-head"><div><div class="mobile-record-code">${escapeHTML(record.code)}</div><div class="mobile-record-name">${escapeHTML(record.name)}</div></div><time class="muted num" datetime="${escapeHTML(record.date)}">${escapeHTML(formatDate(record.date))}</time></div>
+          <div class="mobile-record-grid"><div><span class="balance-label">份额变化/亿份</span><strong class="${changeClass}">${formatNumber(record.change, true)}</strong></div><div><span class="balance-label">份额余额/亿份</span><strong>${formatNumber(record.balance)}</strong></div></div>
+          <details class="data-details"><summary>查看数据详情</summary><div class="detail-panel">${detailHTML(record)}<div>状态：${escapeHTML(record.status)}</div></div></details>
+        </article>`;
+      }).join("");
+    }
+
+    function renderRecords() {
+      const isMatrix = state.etfFilter === "all";
+      const allItems = isMatrix ? matrixRows() : filteredRecords();
+      const totalItems = allItems.length;
+      const totalPages = Math.max(1, Math.ceil(totalItems / state.pageSize));
+      state.page = Math.min(state.page, totalPages);
+      const startIndex = (state.page - 1) * state.pageSize;
+      const pageItems = allItems.slice(startIndex, startIndex + state.pageSize);
+      const hasRecords = totalItems > 0;
+
+      el.emptyRecords.hidden = hasRecords;
+      el.tableShell.hidden = !hasRecords;
+      el.mobileRecords.hidden = !hasRecords || isMatrix;
+      el.tableShell.classList.toggle("matrix-mode", isMatrix);
+      el.recordsTable.classList.toggle("matrix-table", isMatrix);
+      el.recordsViewTitle.textContent = isMatrix ? "工作日份额变化（亿份）" : `${state.etfFilter} 详细历史数据`;
+
+      if (isMatrix) {
+        el.mobileRecords.innerHTML = "";
+        renderMatrixRows(pageItems);
+        renderPagination(totalItems, "个工作日");
+      } else {
+        renderDetailedRows(pageItems);
+        renderPagination(totalItems, "条记录");
+      }
+    }
+
+    function renderAll() {
+      renderHeader();
+      renderLatestCards();
+      renderChart();
+      renderRecords();
+    }
+
+    function updatePressedButtons(selector, selected) {
+      document.querySelectorAll(selector).forEach(button => {
+        const matches = String(button.dataset.metric ?? button.dataset.range) === String(selected);
+        button.classList.toggle("active", matches);
+        button.setAttribute("aria-pressed", matches ? "true" : "false");
+      });
+    }
+
+    document.querySelectorAll(".metric-button").forEach(button => {
+      button.addEventListener("click", () => {
+        state.metric = button.dataset.metric;
+        updatePressedButtons(".metric-button", state.metric);
+        renderChart();
+      });
+    });
+
+    document.querySelectorAll(".range-button").forEach(button => {
+      button.addEventListener("click", () => {
+        state.range = button.dataset.range === "all" ? "all" : Number(button.dataset.range);
+        updatePressedButtons(".range-button", state.range);
+        renderChart();
+      });
+    });
+
+    el.etfFilter.addEventListener("change", event => {
+      state.etfFilter = event.target.value;
+      state.page = 1;
+      renderRecords();
+    });
+
+    el.pageSize.addEventListener("change", event => {
+      state.pageSize = Number(event.target.value);
+      state.page = 1;
+      renderRecords();
+    });
+
+    el.paginationControls.addEventListener("click", event => {
+      const button = event.target.closest("button[data-page]");
+      if (!button || button.disabled) return;
+      state.page = Number(button.dataset.page);
+      renderRecords();
+    });
+
+    async function loadData() {
+      try {
+        const response = await fetch(DATA_URL, { cache: "no-store", headers: { "Accept": "text/csv,text/plain" } });
+        if (!response.ok) throw new Error(`后台返回 ${response.status}`);
+        const result = parseData(await response.text());
+        state.records = result.records;
+        state.warnings = result.warnings;
+        state.sourceMode = "backend";
+        setNotice(result.warnings.length ? `后台数据已载入，但有 ${result.warnings.length} 项记录需要核对。` : "");
+      } catch (error) {
+        const result = parseData(EMBEDDED_CSV);
+        state.records = result.records;
+        state.warnings = result.warnings;
+        state.sourceMode = "fallback";
+        setNotice("后台数据暂时不可用，当前展示内嵌备用数据。请核对最新数据日期。");
+      }
+      renderAll();
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
