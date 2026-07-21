@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#000000">
-  <meta name="description" content="国家队ETF份额监控：查看核心沪深300ETF的最新份额变化、份额余额与历史趋势。">
+  <meta name="description" content="国家队ETF份额监控：查看核心ETF的最新份额变化、份额余额与历史趋势。">
   <title>国家队 ETF 份额监控</title>
 
-  <!-- CDN 库失败时，页面仍依靠下方内嵌 CSS 和原生数据表正常显示。 -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <!-- 本地依赖失败时，页面仍依靠下方内嵌 CSS 和原生数据表正常显示。 -->
+  <script src="../../assets/vendor/tailwindcss/4.3.3/browser.js"></script>
+  <link rel="stylesheet" href="../../assets/vendor/fontawesome/6.5.2/css/all.min.css">
+  <script src="../../assets/vendor/chartjs/4.4.7/chart.umd.min.js"></script>
 
   <style>
     :root {
@@ -282,7 +282,7 @@
 
     .etf-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 18px;
     }
 
@@ -622,7 +622,7 @@
       font-weight: 650;
     }
 
-    .matrix-table { min-width: 680px; }
+    .matrix-table { min-width: 820px; }
     .matrix-table th:not(:first-child),
     .matrix-table td:not(:first-child) { text-align: right; }
 
@@ -720,7 +720,7 @@
       .notice { width: calc(100% - 64px); }
       .hero-meta { grid-template-columns: 1.4fr 1fr; }
       .hero-meta .meta-card:last-child { grid-column: 1 / -1; }
-      .etf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .etf-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .chart-wrap { height: 390px; }
       .section { padding-block: 88px; }
     }
@@ -790,7 +790,7 @@
       <div class="shell">
         <p class="eyebrow">National Team ETF Share Monitor</p>
         <h1 id="pageTitle">国家队 ETF 份额监控</h1>
-        <p class="hero-copy">跟踪核心沪深300 ETF 的每日份额变化、份额余额与历史趋势。</p>
+        <p class="hero-copy">跟踪核心 ETF 的每日份额变化、份额余额与历史趋势。</p>
 
         <div class="hero-meta" aria-label="数据摘要">
           <article class="meta-card">
@@ -820,7 +820,7 @@
           </div>
           <p id="latestSectionNote" class="section-note">每只ETF独立展示。</p>
         </div>
-        <div id="latestCards" class="etf-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" aria-live="polite"></div>
+        <div id="latestCards" class="etf-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5" aria-live="polite"></div>
       </div>
     </section>
 
@@ -849,7 +849,7 @@
 
         <div class="chart-card">
           <div id="chartWrap" class="chart-wrap">
-            <canvas id="historyChart" role="img" aria-label="四只ETF的历史份额变化图"></canvas>
+            <canvas id="historyChart" role="img" aria-label="五只ETF的历史份额变化图"></canvas>
           </div>
           <div id="chartFallback" class="chart-fallback" hidden>
             <p><i class="fa-solid fa-chart-column" aria-hidden="true"></i><br>图表组件暂时不可用，请查看下方历史数据。</p>
@@ -873,6 +873,7 @@
               <option value="510330.SH">510330.SH</option>
               <option value="510310.SH">510310.SH</option>
               <option value="159919.SZ">159919.SZ</option>
+              <option value="588000.SH">588000.SH</option>
             </select>
           </div>
         </div>
@@ -922,12 +923,13 @@
       3. 页面不提供前台上传入口，避免访问者误改数据。
     */
     const DATA_URL = "./etf_history.csv";
-    const ETF_ORDER = ["510300.SH", "510330.SH", "510310.SH", "159919.SZ"];
+    const ETF_ORDER = ["510300.SH", "510330.SH", "510310.SH", "159919.SZ", "588000.SH"];
     const ETF_FALLBACK_NAMES = {
       "510300.SH": "华泰柏瑞沪深300ETF",
       "510330.SH": "华夏沪深300ETF",
       "510310.SH": "易方达沪深300ETF",
-      "159919.SZ": "嘉实沪深300ETF"
+      "159919.SZ": "嘉实沪深300ETF",
+      "588000.SH": "华夏上证科创板50ETF"
     };
 
     const REQUIRED_HEADERS = [
@@ -1281,9 +1283,9 @@
       el.chartFallback.hidden = true;
 
       const dates = datesForRange();
-      const opacity = [1, 0.76, 0.56, 0.36];
-      const dash = [[], [10, 5], [3, 4], [12, 4, 3, 4]];
-      const points = ["circle", "rect", "triangle", "rectRot"];
+      const opacity = [1, 0.76, 0.56, 0.36, 0.24];
+      const dash = [[], [10, 5], [3, 4], [12, 4, 3, 4], [2, 6]];
+      const points = ["circle", "rect", "triangle", "rectRot", "crossRot"];
       const isBalance = state.metric === "balance";
       const chartType = isBalance ? "line" : "bar";
 
@@ -1386,7 +1388,7 @@
 
       document.getElementById("historyChart").setAttribute(
         "aria-label",
-        `四只ETF最近${state.range === "all" ? "全部" : state.range + "个工作日"}的${isBalance ? "份额余额" : "份额变化"}图`
+        `${ETF_ORDER.length}只ETF最近${state.range === "all" ? "全部" : state.range + "个工作日"}的${isBalance ? "份额余额" : "份额变化"}图`
       );
     }
 
