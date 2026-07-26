@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#11100f">
+  <meta name="description" content="《一人之下》在线漫画阅读页，共 807 章。">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="一人之下 · yrzx漫画">
+  <meta property="og:description" content="全 807 章、12,997 页的沉浸式漫画阅读器。">
+  <meta property="og:image" content="https://cuidenglin-dotcom.github.io/pages/yrzx-manga/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="一人之下 · yrzx漫画">
+  <meta name="twitter:description" content="全 807 章、12,997 页的沉浸式漫画阅读器。">
+  <meta name="twitter:image" content="https://cuidenglin-dotcom.github.io/pages/yrzx-manga/og.png">
+  <title>一人之下 · yrzx漫画</title>
+  <link rel="preconnect" href="https://manga-assets.rikkuma.kdns.fr" crossorigin>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+  <a class="skip-link" href="#comicReader">跳到漫画正文</a>
+  <header class="site-header">
+    <a class="brand" href="../../" aria-label="返回网站首页">
+      <span class="brand-mark" aria-hidden="true">异</span>
+      <span><strong>yrzx漫画</strong><small>RIKKUMA READER</small></span>
+    </a>
+    <div class="header-actions">
+      <button class="icon-button" id="widthToggle" type="button" aria-pressed="false">原图宽度</button>
+      <button class="icon-button" id="themeToggle" type="button" aria-pressed="false">浅色阅读</button>
+    </div>
+  </header>
+  <main>
+    <section class="reader-intro" aria-labelledby="readerTitle">
+      <div>
+        <p class="eyebrow">一人之下 · 全 807 章</p>
+        <h1 id="readerTitle">正在载入漫画目录…</h1>
+        <p class="chapter-meta" id="chapterMeta" aria-live="polite">正在连接漫画资源。</p>
+      </div>
+      <div class="chapter-controls" aria-label="章节控制">
+        <label class="chapter-select-label" for="chapterSelect"><span>选择章节</span>
+          <select id="chapterSelect" disabled><option>正在载入目录…</option></select>
+        </label>
+        <div class="chapter-nav">
+          <button id="previousChapter" type="button" disabled aria-label="阅读上一章">上一章</button>
+          <button id="nextChapter" type="button" disabled aria-label="阅读下一章">下一章</button>
+        </div>
+      </div>
+    </section>
+    <section class="load-state" id="loadState" aria-live="polite"><span class="spinner" aria-hidden="true"></span><p>正在准备漫画图片…</p></section>
+    <section class="error-state" id="errorState" hidden aria-live="assertive">
+      <strong>这一章暂时载入失败</strong><p id="errorMessage">请检查网络连接后重试。</p><button id="retryChapter" type="button">重新载入</button>
+    </section>
+    <section class="comic-reader" id="comicReader" aria-label="漫画图片" tabindex="-1"></section>
+    <nav class="bottom-nav" id="bottomNav" aria-label="章节翻页" hidden>
+      <button id="bottomPrevious" type="button">上一章</button>
+      <div><strong id="bottomChapterTitle">本章结束</strong><span>继续阅读下一章</span></div>
+      <button id="bottomNext" type="button">下一章</button>
+    </nav>
+  </main>
+  <button class="back-to-top" id="backToTop" type="button" aria-label="返回页面顶部" hidden>回到顶部</button>
+  <noscript><p class="noscript">此阅读器需要启用 JavaScript 才能按照章节顺序载入漫画图片。</p></noscript>
+  <script src="./app.js" defer></script>
+</body>
+</html>
