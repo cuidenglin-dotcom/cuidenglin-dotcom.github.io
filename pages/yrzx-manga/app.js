@@ -1,6 +1,7 @@
 "use strict";
 
-const CATALOG_URL = "https://manga-assets.rikkuma.kdns.fr/v1/catalog.json";
+const LEGACY_CATALOG_URL = "https://manga-assets.rikkuma.kdns.fr/v1/catalog.json";
+const CURRENT_POINTER_URL = "https://manga-assets.rikkuma.kdns.fr/current.json";
 const READER_STATE_KEY = "rikkuma-yrzx-reader-v1";
 const THEME_KEY = "rikkuma-yrzx-theme";
 const WIDTH_KEY = "rikkuma-yrzx-width";
@@ -35,8 +36,40 @@ async function fetchJson(url, signal) {
   if (!response.ok) throw new Error(`资源请求失败（HTTP ${response.status}）`);
   return response.json();
 }
+async function sha256Hex(text) {
+  if (!globalThis.crypto?.subtle) return null;
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+async function fetchActiveCatalog() {
+  const pointerResponse = await fetch(CURRENT_POINTER_URL, {
+    cache: "no-store",
+    headers: { Accept: "application/json" }
+  });
+  let catalogUrl = LEGACY_CATALOG_URL, expectedSha = null;
+  if (pointerResponse.status !== 404) {
+    if (!pointerResponse.ok) throw new Error(`\u66f4\u65b0\u6307\u9488\u8bf7\u6c42\u5931\u8d25\uff08HTTP ${pointerResponse.status}\uff09`);
+    const pointer = await pointerResponse.json();
+    if (pointer?.manga_id !== "23475" || !/^https:\/\//.test(pointer?.catalog_url || "") || !/^[a-f0-9]{64}$/i.test(pointer?.catalog_sha256 || "")) {
+      throw new Error("\u6f2b\u753b\u66f4\u65b0\u6307\u9488\u683c\u5f0f\u4e0d\u6b63\u786e");
+    }
+    catalogUrl = pointer.catalog_url;
+    expectedSha = pointer.catalog_sha256.toLowerCase();
+  }
+  const catalogResponse = await fetch(catalogUrl, {
+    cache: "no-store",
+    headers: { Accept: "application/json" }
+  });
+  if (!catalogResponse.ok) throw new Error(`\u6f2b\u753b\u76ee\u5f55\u8bf7\u6c42\u5931\u8d25\uff08HTTP ${catalogResponse.status}\uff09`);
+  const catalogText = await catalogResponse.text();
+  if (expectedSha) {
+    const actualSha = await sha256Hex(catalogText);
+    if (actualSha && actualSha !== expectedSha) throw new Error("\u6f2b\u753b\u76ee\u5f55\u6821\u9a8c\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5");
+  }
+  return JSON.parse(catalogText);
+}
 function validateCatalog(catalog) {
-  if (!catalog?.manga || !Array.isArray(catalog.chapters) || catalog.chapters.length !== 807) throw new Error("漫画目录格式不正确");
+  if (!catalog?.manga || !Array.isArray(catalog.chapters) || catalog.chapters.length === 0 || Number(catalog.manga.total_chapters) !== catalog.chapters.length) throw new Error("漫画目录格式不正确");
   catalog.chapters.forEach((chapter, index) => {
     if (chapter.order !== index + 1 || !chapter.manifest) throw new Error(`漫画目录在第 ${index + 1} 章处顺序异常`);
   });
@@ -155,7 +188,7 @@ function bindEvents() {
 async function initialize() {
   applyPreferences(); bindEvents(); requestProgress();
   try {
-    const catalog = await fetchJson(CATALOG_URL); validateCatalog(catalog); state.catalog = catalog; fillChapterSelect();
+    const catalog = await fetchActiveCatalog(); validateCatalog(catalog); state.catalog = catalog; fillChapterSelect();
     await loadChapter(requestedChapter(catalog.chapters.length), { replaceHistory: true, instant: true, scroll: false });
   } catch (error) { showError(error); elements.title.textContent = "漫画目录载入失败"; elements.meta.textContent = "未能连接漫画资源。"; }
 }
