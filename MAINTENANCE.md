@@ -6,6 +6,8 @@
 
 当前新增页面：
 
+- `pages/shaanxi-coal-valuation/`：陕西煤业估值工作台 V1.0 静态版。
+
 - `pages/national-team-etf-monitor/`：国家队 ETF 份额监控。
 - 日常只更新 `pages/national-team-etf-monitor/etf_history.csv`。
 - 页面专属说明见 `pages/national-team-etf-monitor/README.md`。
@@ -22,4 +24,5 @@
 ## 安全边界
 
 维护文档不得记录服务器密码、访问令牌或私钥。凭据应通过 SSH 密钥、密码管理器或运行时环境变量提供。
+
 
