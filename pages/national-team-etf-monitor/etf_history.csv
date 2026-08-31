@@ -299,3 +299,8 @@ date,code,name,share_change_100m,share_balance_100m,prev_date,prev_share_balance
 20260828,510310.SH,易方达沪深300etf,-0.3510,114.3064,20260827,114.6574,ok,ifind-finance-data:get_fund_ownership:balance-diff,2026-08-30T21:34:06+00:00
 20260828,510330.SH,华夏沪深300etf,-0.0720,83.9275,20260827,83.9995,ok,ifind-finance-data:get_fund_ownership:balance-diff,2026-08-30T21:34:06+00:00
 20260828,588000.SH,华夏上证科创板50ETF,2.9100,503.3667,20260827,500.4567,ok,ifind-finance-data:get_fund_ownership:balance-diff,2026-08-30T21:34:06+00:00
+20260831,159919.SZ,嘉实沪深300etf,0.3600,62.9842,,,ok,ths-ifind-command:iwencai:fund,2026-08-31T21:30:48+00:00
+20260831,510300.SH,华泰柏瑞沪深300etf,2.0880,235.0399,,,ok,ths-ifind-command:iwencai:fund,2026-08-31T21:30:48+00:00
+20260831,510310.SH,易方达沪深300etf,0.3870,114.6934,,,ok,ths-ifind-command:iwencai:fund,2026-08-31T21:30:48+00:00
+20260831,510330.SH,华夏沪深300etf,0.1440,84.0715,,,ok,ths-ifind-command:iwencai:fund,2026-08-31T21:30:48+00:00
+20260831,588000.SH,华夏上证科创板50ETF,2.0400,505.4067,,,ok,ths-ifind-command:iwencai:fund,2026-08-31T21:30:48+00:00
