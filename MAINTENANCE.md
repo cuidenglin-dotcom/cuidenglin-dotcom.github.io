@@ -6,6 +6,8 @@
 
 当前新增页面：
 
+- `pages/sky-hunter/`：天空猎手 · 老鹰抓鸽子，一分钟挑战，8 层难度与具名本机排行榜。
+
 - `pages/shaanxi-coal-valuation/`：陕西煤业估值工作台 V1.0 静态版。
 
 - `pages/national-team-etf-monitor/`：国家队 ETF 份额监控。
