@@ -4,7 +4,10 @@
   const canvas = $('game'), ctx = canvas.getContext('2d'), hero = $('hero'), hc = hero.getContext('2d');
   const names = ['初次展翅','顺风飞翔','空中追逐','敏捷对决','急速闪避','疾风猎手','极限反应','天空霸主'];
   const descriptions = ['小鸽子慢慢飞，轻松练习火圈。','小鸽子开始加速，偶尔换个方向。','小鸽子频繁转弯，要跟紧它。','鸽子发现你靠近，就会侧身闪避。','更快的转向、更远的警戒范围。','鸽子会突然加速，抓住转弯的时机。','高速飞行和连续变向，考验你的反应。','最高速度、最灵活的闪躲，挑战天空霸主！'];
-  const ROUND_SECONDS = 60, DOVE_COUNT = 3, SCORE_KEY = 'sky-hunter-scores-v2-minute';
+  const ROUND_SECONDS = 60, DOVE_COUNT = 3;
+  const SITE = location.hostname === 'cuidenglin-dotcom.github.io' || location.port === '8899' ? 'github' : 'vps';
+  const API = 'https://rikkuma.kdns.fr/api/sky-hunter';
+  const PENDING_KEY = `sky-hunter-pending-server-v1-${SITE}`;
   let W = 0, H = 0, dpr = 1, level = 1, state = 'menu', score = 0, remaining = ROUND_SECONDS;
   let last = performance.now(), elapsed = 0, cooldown = 0, ring = null, particles = [], toastTime = 0;
   let eagle = { x: 0, y: 0, facing: 1 }, doves = [];
@@ -16,16 +19,49 @@
   function storageRead(key, fallback) { try { const value = JSON.parse(localStorage.getItem(key)); return value ?? fallback; } catch { return fallback; } }
   const cleanName = value => typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,12) : '';
   let playerName = '', lastPlayerName = cleanName(storageRead('sky-hunter-player-name', ''));
-  let scores = storageRead(SCORE_KEY, []);
-  if (!Array.isArray(scores)) scores = [];
-  scores = scores.filter(s => s && Number.isFinite(s.score) && s.level >= 1 && s.level <= 8 && typeof s.date === 'string');
+  let scores = [], currentResult = null, saveMessage = '', flushing = false;
+  const loadedLevels = new Set(), failedLevels = new Set();
+  let pending = storageRead(PENDING_KEY, []);
+  if(!Array.isArray(pending))pending=[];
+  pending=pending.filter(s=>s&&typeof s.submission_id==='string'&&cleanName(s.name)&&Number.isInteger(s.score)&&s.score>=0&&s.score<=300&&s.site===SITE&&s.level>=1&&s.level<=8);
+  function persistPending(){try{localStorage.setItem(PENDING_KEY,JSON.stringify(pending));}catch{}}
+  async function apiRequest(path,body){
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+    try{const response=await fetch(API+path,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,signal:controller.signal,credentials:'omit',cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'服务器暂时不可用');return data;}finally{clearTimeout(timer);}
+  }
+  function updateRecord(){
+    $('record').textContent=failedLevels.has(level)?'暂时无法读取服务器成绩，可稍后重试':!loadedLevels.has(level)?'正在读取服务器排行榜…':best(level)?`第 ${level} 层服务器最高：${best(level)} 分 · 挑战纪录！`:'每局 1 分钟 · 三只鸽子同时飞行';
+  }
+  async function loadScores(l){
+    failedLevels.delete(l);
+    try{const data=await apiRequest(`/leaderboard?site=${SITE}&level=${l}`);if(data.site!==SITE||data.level!==l||!Array.isArray(data.scores))throw new Error('排行榜格式不正确');scores=scores.filter(s=>s.level!==l).concat(data.scores);loadedLevels.add(l);}
+    catch{failedLevels.add(l);throw new Error('暂时无法读取排行榜');}
+    finally{if(level===l)updateRecord();}
+  }
+  function renderSaveStatus(){
+    $('best-result').replaceChildren(document.createTextNode(saveMessage+' · '));
+    if(currentResult&&pending.some(s=>s.submission_id===currentResult.submission_id)){
+      const retry=document.createElement('button');retry.textContent='重试保存';retry.onclick=()=>submitScore(currentResult).catch(()=>{});$('best-result').append(retry,document.createTextNode(' · '));
+    }
+    const board=document.createElement('button');board.textContent='查看排行榜';board.onclick=()=>openBoard(currentResult?currentResult.level:level);$('best-result').append(board);
+  }
+  async function submitScore(entry){
+    const id=entry.submission_id;
+    if(currentResult&&currentResult.submission_id===id){saveMessage='正在保存到服务器…';renderSaveStatus();}
+    try{const receipt=await apiRequest('/scores',entry);if(!receipt.saved||!receipt.entry||receipt.entry.id!==id)throw new Error('服务器未确认保存');pending=pending.filter(s=>s.submission_id!==id);persistPending();
+      if(currentResult&&currentResult.submission_id===id){saveMessage=`已保存到服务器 · 本层第 ${receipt.rank} 名`;renderSaveStatus();}
+      await loadScores(entry.level).catch(()=>{});
+      if(!$('board').classList.contains('hidden')&&boardLevel===entry.level)drawBoard(entry.level);
+    }catch(error){if(currentResult&&currentResult.submission_id===id){saveMessage='尚未保存到服务器，请重试';renderSaveStatus();}throw error;}
+  }
+  async function flushPending(){if(flushing)return;flushing=true;try{for(const entry of [...pending]){try{await submitScore(entry);}catch{break;}}}finally{flushing=false;}}
   function best(l) { return Math.max(0, ...scores.filter(s => s.level === l).map(s => s.score)); }
   function choose(l) {
     level = l;
     $('levels').querySelectorAll('button').forEach((b,i) => { b.classList.toggle('active',i+1 === l); b.setAttribute('aria-pressed', String(i+1 === l)); });
     $('level-name').textContent = `${l} 层 · ${names[l-1]}`;
     $('level-description').textContent = descriptions[l-1];
-    $('record').textContent = best(l) ? `第 ${l} 层一分钟最高：${best(l)} 分 · 你能打破纪录吗？` : '每局 1 分钟 · 三只鸽子同时飞行';
+    updateRecord();loadScores(l).catch(()=>{});
   }
   for (let l=1; l<=8; l++) {
     const b = document.createElement('button'); b.textContent = l; b.setAttribute('aria-label',`难度 ${l} 层`); b.onclick = () => choose(l); $('levels').append(b);
@@ -101,11 +137,9 @@
   function pause(){if(state!=='playing')return;state='paused';pointer=null;$('pause-panel').classList.remove('hidden');}
   function resume(){if(state!=='paused')return;ensureAudio();state='playing';$('pause-panel').classList.add('hidden');last=performance.now();}
   function finish() {
-    state='result';pointer=null;remaining=0;updateHud();const prior=best(level);const entry={name:playerName,level,score,date:new Date().toISOString()};scores.push(entry);
-    scores=scores.sort((a,b)=>b.score-a.score).filter((s,i,all)=>all.slice(0,i).filter(v=>v.level===s.level).length<5);
-    let saved=true;try{localStorage.setItem(SCORE_KEY,JSON.stringify(scores));}catch{saved=false;}
+    state='result';pointer=null;remaining=0;updateHud();const prior=best(level);const entry={submission_id:crypto.randomUUID(),site:SITE,name:playerName,level,score};currentResult=entry;pending.push(entry);persistPending();
     $('final-score').textContent=score;$('result-title').textContent=score===0?'再练练你的火圈！':score>prior?'新的天空纪录！':'漂亮的捕猎！';$('result-description').textContent=`${playerName} · 第 ${level} 层 · ${names[level-1]} · 每只鸽子 1 分`;
-    $('best-result').replaceChildren(document.createTextNode(`本层最高 ${best(level)} 分${saved?'':' · 本次成绩暂未保存'} · `));const b=document.createElement('button');b.textContent='查看排行榜';b.onclick=()=>openBoard(level);$('best-result').append(b);$('result').classList.remove('hidden');
+    saveMessage='正在保存到服务器…';renderSaveStatus();$('result').classList.remove('hidden');submitScore(entry).catch(()=>{});
   }
   function attack(){
     if(state!=='playing'||cooldown>0)return;
@@ -172,9 +206,12 @@
   canvas.addEventListener('pointercancel',()=>pointer=null);canvas.addEventListener('lostpointercapture',()=>pointer=null);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
   document.addEventListener('keydown',e=>{if(e.code==='Space'&&state==='playing'){e.preventDefault();attack();}if(e.code==='Escape'){if(!$('name-panel').classList.contains('hidden'))cancelName();else if(!$('board').classList.contains('hidden'))closeBoard();else if(state==='playing')pause();else if(state==='paused')resume();}});
-  function renderBoard(l){boardLevel=l;$('board-levels').querySelectorAll('button').forEach((b,i)=>{b.classList.toggle('active',i+1===l);b.setAttribute('aria-pressed',String(i+1===l));});const list=$('board-list');list.replaceChildren();const rows=scores.filter(s=>s.level===l).sort((a,b)=>b.score-a.score).slice(0,5);
+  function drawBoard(l){const list=$('board-list');list.replaceChildren();const rows=scores.filter(s=>s.level===l).sort((a,b)=>b.score-a.score).slice(0,5);
     if(!rows.length){const e=document.createElement('div');e.className='empty-board';e.textContent='这里还没有成绩，来当第一位猎手吧！';list.append(e);}
     rows.forEach((s,i)=>{const row=document.createElement('div');row.className='board-row';const rank=document.createElement('span');rank.className='rank';rank.textContent=String(i+1).padStart(2,'0');const title=document.createElement('span');title.className='board-name';title.textContent=cleanName(s.name)||'未署名玩家';title.title=title.textContent;const date=document.createElement('span');date.className='board-date';date.textContent=new Date(s.date).toLocaleDateString('zh-CN',{month:'2-digit',day:'2-digit'});const points=document.createElement('strong');points.textContent=`${s.score} 分`;row.append(rank,title,date,points);list.append(row);});
+  }
+  async function renderBoard(l){boardLevel=l;$('board-levels').querySelectorAll('button').forEach((b,i)=>{b.classList.toggle('active',i+1===l);b.setAttribute('aria-pressed',String(i+1===l));});$('board-list').textContent='正在读取服务器排行榜…';
+    try{await loadScores(l);if(boardLevel===l)drawBoard(l);}catch{if(boardLevel===l){$('board-list').textContent='暂时无法读取服务器排行榜。';const retry=document.createElement('button');retry.className='secondary';retry.textContent='重新加载';retry.onclick=()=>renderBoard(l);$('board-list').append(retry);}}
   }
   function openBoard(l){renderBoard(l);$('board').classList.remove('hidden');$('close-board').focus();}
   function closeBoard(){$('board').classList.add('hidden');if(state==='menu')$('show-board').focus();}
@@ -184,5 +221,8 @@
   $('cancel-name').onclick=cancelName;
   $('start').onclick=requestName;$('again').onclick=requestName;$('pause').onclick=pause;$('resume').onclick=resume;$('return-menu').onclick=menu;$('change-level').onclick=menu;$('show-board').onclick=()=>openBoard(level);$('close-board').onclick=closeBoard;
   $('sound').onclick=()=>{sound=!sound;$('sound-label').textContent=sound?'音效开':'音效关';$('sound').setAttribute('aria-label',sound?'关闭捕猎音效':'开启捕猎音效');tone(500,.12);};
+  window.addEventListener('online',()=>flushPending());
+  window.addEventListener('pagehide',persistPending);
+  flushPending();
   requestAnimationFrame(frame);
 })();

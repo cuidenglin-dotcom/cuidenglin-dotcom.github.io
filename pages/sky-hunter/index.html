@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f7f3e8"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='32' fill='%23293a32'/%3E%3Ctext x='12' y='47' font-size='48' fill='%23f7f3e8'%3E↗%3C/text%3E%3C/svg%3E"><title>天空猎手 · 老鹰抓鸽子</title>
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 <main class="shell">
@@ -15,7 +15,7 @@
     <div id="toast" class="toast" aria-live="polite"></div>
     <div id="attack-status" class="attack-status hidden"><span id="attack-light"></span><b id="attack-label">利爪就绪 · 轻点出击</b></div>
     <div id="intro" class="overlay">
-      <div class="intro-copy"><div class="eyebrow"><span></span> 01:00 · 极限追逐</div><h1>张开翅膀，<br>成为<span>天空猎手。</span></h1><p class="description">凶猛老鹰 vs 机灵小鸽子。<br>拖动靠近，轻点燃起火圈。命中一只，得一分。</p><div class="difficulty-head"><span>选择你的挑战</span><strong id="level-name">1 层 · 初次展翅</strong></div><div id="levels" class="levels" role="group" aria-label="选择难度"></div><p id="level-description" class="level-description">小鸽子飞得慢，适合练习你的第一爪。</p><button id="start" class="primary">开始捕猎 <span>↗</span></button><div id="record" class="record">每局 1 分钟 · 三只鸽子同时飞行</div><button id="show-board" class="board-link">查看本机排行榜 ↗</button></div>
+      <div class="intro-copy"><div class="eyebrow"><span></span> 01:00 · 极限追逐</div><h1>张开翅膀，<br>成为<span>天空猎手。</span></h1><p class="description">凶猛老鹰 vs 机灵小鸽子。<br>拖动靠近，轻点燃起火圈。命中一只，得一分。</p><div class="difficulty-head"><span>选择你的挑战</span><strong id="level-name">1 层 · 初次展翅</strong></div><div id="levels" class="levels" role="group" aria-label="选择难度"></div><p id="level-description" class="level-description">小鸽子飞得慢，适合练习你的第一爪。</p><button id="start" class="primary">开始捕猎 <span>↗</span></button><div id="record" class="record">每局 1 分钟 · 三只鸽子同时飞行</div><button id="show-board" class="board-link">查看服务器排行榜 ↗</button></div>
       <div class="hero-art"><canvas id="hero" aria-label="一只展开利爪的凶猛老鹰，正在追逐小鸽子"></canvas><div class="art-caption"><span>01 / THE HUNTER</span><b>锐眼 · 利爪 · 全速出击</b></div></div>
     </div>
     <div id="pause-panel" class="modal-overlay hidden"><div class="modal"><div class="eyebrow">TAKE A BREATH</div><h2>歇一歇，再展翅。</h2><p>时间已暂停，鸽子也在等你。</p><button id="resume" class="primary">继续捕猎 <span>↗</span></button><button id="return-menu" class="secondary">回到难度选择</button></div></div>
@@ -24,6 +24,6 @@
   <footer><div class="instruction"><span class="instruction-icon">↔</span><div><b>拖动老鹰</b><small>按住老鹰，带它飞行</small></div></div><div class="instruction"><span class="instruction-icon">⌖</span><div><b>轻点放火圈</b><small>鸽子在圈内，命中得 1 分</small></div></div><div class="instruction last"><span class="instruction-icon">◷</span><div><b>一分钟挑战</b><small>最后 3 秒 · 嘟嘟嘟</small></div></div><span class="footer-sign">眼疾，手快。<i>LET'S FLY.</i></span></footer>
 </main>
 <div id="name-panel" class="board-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="name-title"><section class="modal name-modal"><div class="eyebrow">WHO'S THE HUNTER?</div><h2 id="name-title">这次谁来挑战？</h2><p>写下你的名字，成绩就记在你名下。</p><form id="name-form" novalidate><label for="player-name">玩家名字</label><input id="player-name" name="playerName" type="text" placeholder="输入名字或昵称" maxlength="12" required autocomplete="off" aria-describedby="name-error"><div id="name-error" aria-live="polite"></div><button class="primary" type="submit">带着名字出发 <span>↗</span></button><button id="cancel-name" class="secondary" type="button">返回</button></form></section></div>
-<div id="board" class="board-overlay hidden"><section class="modal board-modal"><div class="eyebrow">LOCAL LEADERBOARD</div><h2>天空猎手排行榜</h2><p>一分钟排行榜 · 同一难度比成绩</p><div id="board-levels" class="levels board-levels" role="group" aria-label="排行榜难度"></div><div id="board-list"></div><button id="close-board" class="primary">回到天空 <span>↗</span></button></section></div>
-<script src="game.js?v=3"></script>
+<div id="board" class="board-overlay hidden"><section class="modal board-modal"><div class="eyebrow">SERVER LEADERBOARD</div><h2>天空猎手排行榜</h2><p>成绩保存在服务器 · 本网站独立排行</p><div id="board-levels" class="levels board-levels" role="group" aria-label="排行榜难度"></div><div id="board-list"></div><button id="close-board" class="primary">回到天空 <span>↗</span></button></section></div>
+<script src="game.js?v=4"></script>
 </body></html>
