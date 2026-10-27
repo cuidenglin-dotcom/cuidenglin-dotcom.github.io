@@ -774,6 +774,18 @@
     .change-number { font-size: clamp(1.6rem, 2vw, 2rem); }
     .etf-name { overflow-wrap: anywhere; }
     .matrix-table thead tr:nth-child(2) th { top: 44px; }
+    .amount-text, .amount-number { color: #ffbf69; }
+    .matrix-table { min-width: 0; width: 100%; table-layout: fixed; }
+    .matrix-table th, .matrix-table td { padding: 14px 5px; font-size: 12px; }
+    .matrix-table thead tr:first-child th:first-child { width: 96px; }
+    .matrix-table thead tr:first-child th:not(:first-child) { text-align: center; }
+    .matrix-table thead tr:nth-child(2) th { font-size: 10px; letter-spacing: 0; text-align: right; }
+    .matrix-table thead tr:first-child th:nth-child(n+3),
+    .matrix-table thead tr:nth-child(2) th:nth-child(2n+3),
+    .matrix-table tbody td:nth-child(2n+4) { border-left: 1px solid #fff; }
+    @media (max-width: 1023px) {
+      .matrix-table { min-width: 1100px; }
+    }
   </style>
 </head>
 
@@ -890,6 +902,7 @@
         </div>
 
         <p id="recordsViewTitle" class="records-view-title">工作日份额变化（亿份）</p>
+        <p class="mobile-scroll-hint">全部五只 ETF 均已列出 · 蓝色为份额，橙色为金额 · 窄屏可左右滑动查看右侧基金 →</p>
         <div id="tableShell" class="table-shell matrix-mode">
           <table id="recordsTable" class="matrix-table">
             <caption class="sr-only">ETF历史份额数据</caption>
@@ -1309,6 +1322,7 @@
       const metricLabel = isAmount ? "估算净增减金额" : isBalance ? "份额余额" : "份额变化";
       const metricUnit = isAmount ? "亿元" : "亿份";
       const chartType = isBalance ? "line" : "bar";
+      const chartRGB = isAmount ? "255, 191, 105" : "0, 174, 239";
 
       const datasets = ETF_ORDER.map((code, index) => {
         const values = dates.map(date => {
@@ -1318,8 +1332,8 @@
         const base = {
           label: code,
           data: values,
-          borderColor: `rgba(0, 174, 239, ${opacity[index]})`,
-          backgroundColor: `rgba(0, 174, 239, ${Math.max(0.18, opacity[index] * 0.68)})`,
+          borderColor: `rgba(${chartRGB}, ${opacity[index]})`,
+          backgroundColor: `rgba(${chartRGB}, ${Math.max(0.18, opacity[index] * 0.68)})`,
           borderWidth: isBalance ? 2 : 1,
           pointStyle: points[index],
           pointRadius: isBalance ? 3 : 0,
@@ -1469,7 +1483,7 @@
     }
 
     function renderMatrixRows(rows) {
-      el.recordsHead.innerHTML = `<tr><th scope="col" rowspan="2">日期</th>${ETF_ORDER.map(code => `<th scope="colgroup" colspan="2">${escapeHTML(code)}</th>`).join("")}</tr><tr>${ETF_ORDER.map(() => '<th scope="col">份额变化/亿份</th><th scope="col">金额变化/亿元</th>').join('')}</tr>`;
+      el.recordsHead.innerHTML = `<tr><th scope="col" rowspan="2">日期</th>${ETF_ORDER.map(code => `<th scope="colgroup" colspan="2">${escapeHTML(code)}</th>`).join("")}</tr><tr>${ETF_ORDER.map(() => '<th scope="col">份额变化/亿份</th><th scope="col" class="amount-text">金额变化/亿元</th>').join('')}</tr>`;
       el.recordsBody.innerHTML = rows.map(row => `
         <tr>
           <td class="num"><strong>${escapeHTML(formatDate(row.date))}</strong></td>
@@ -1477,7 +1491,7 @@
             const record = row.records.get(code);
             if (!record) return '<td class="num muted" aria-label="数据缺失">—</td><td class="num muted">—</td>';
             const valueClass = record.change > 0 ? "positive-text" : "negative-text";
-            return `<td class="num ${valueClass}">${formatNumber(record.change, true)}</td><td class="num ${record.amount > 0 ? 'positive-text' : 'negative-text'}">${formatNumber(record.amount, true)}</td>`;
+            return `<td class="num ${valueClass}">${formatNumber(record.change, true)}</td><td class="num amount-text">${formatNumber(record.amount, true)}</td>`;
           }).join("")}
         </tr>`).join("");
     }
@@ -1496,7 +1510,7 @@
           <td><strong>${escapeHTML(record.code)}</strong></td>
           <td>${escapeHTML(record.name)}</td>
           <td class="num ${changeClass}">${formatNumber(record.change, true)}</td>
-          <td class="num ${record.amount > 0 ? 'positive-text' : 'negative-text'}">${formatNumber(record.amount, true)}</td>
+          <td class="num amount-text">${formatNumber(record.amount, true)}</td>
           <td class="num">${formatNumber(record.balance)}</td>
           <td class="muted">${escapeHTML(record.status)}</td>
           <td><details class="data-details"><summary>查看</summary><div class="detail-panel">${detailHTML(record)}</div></details></td>
@@ -1523,7 +1537,7 @@
               return `<tr>
                 <td class="num"><time datetime="${escapeHTML(record.date)}">${escapeHTML(formatDate(record.date))}</time></td>
                 <td class="mobile-history-change num ${changeClass}">${formatNumber(record.change, true)}</td>
-                <td class="num ${record.amount > 0 ? 'positive-text' : 'negative-text'}">${formatNumber(record.amount, true)}</td>
+                <td class="num amount-text">${formatNumber(record.amount, true)}</td>
                 <td class="num">${formatNumber(record.balance)}</td>
                 <td>${escapeHTML(record.status)}</td>
                 <td class="num">${escapeHTML(formatDate(record.prevDate))}</td>
