@@ -338,6 +338,9 @@
       color: var(--subtle);
       font-size: 12px;
     }
+    .amount-number { margin-top: 18px; font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; }
+    .matrix-table { min-width: 1520px; }
+    .mobile-history-table { width: 1550px; min-width: 1550px; }
 
     .etf-name {
       margin: 28px 0 0;
@@ -764,6 +767,13 @@
       .footer-inner { display: block; }
       .footer-inner p + p { margin-top: 10px; }
     }
+    .matrix-table { min-width: 1520px; }
+    .mobile-history-table { width: 1650px; min-width: 1650px; }
+    .mobile-history-table th, .mobile-history-table td { min-width: 160px; }
+    .mobile-history-table th:nth-child(n), .mobile-history-table td:nth-child(n) { width: 180px; }
+    .change-number { font-size: clamp(1.6rem, 2vw, 2rem); }
+    .etf-name { overflow-wrap: anywhere; }
+    .matrix-table thead tr:nth-child(2) th { top: 44px; }
   </style>
 </head>
 
@@ -831,13 +841,14 @@
             <p class="section-kicker">Historical View</p>
             <h2 id="historyHeading">历史变化</h2>
           </div>
-          <p class="section-note">切换份额变化与份额余额；图例可单独隐藏或显示ETF。</p>
+          <p class="section-note">切换份额变化、份额余额与估算净增减金额；图例可单独隐藏或显示ETF。金额缺失时图表留空。</p>
         </div>
 
         <div class="controls" aria-label="图表控制">
           <div class="control-group" role="group" aria-label="指标">
             <button class="control-button metric-button active" type="button" data-metric="change" aria-pressed="true">份额变化</button>
             <button class="control-button metric-button" type="button" data-metric="balance" aria-pressed="false">份额余额</button>
+            <button class="control-button metric-button" type="button" data-metric="amount" aria-pressed="false">估算净增减金额</button>
           </div>
           <div class="control-group" role="group" aria-label="日期范围">
             <button class="control-button range-button active" type="button" data-range="5" aria-pressed="true">5日</button>
@@ -907,6 +918,7 @@
   </main>
 
   <footer class="footer">
+    <p class="shell">估算净增减金额（亿元）＝当日份额变化（亿份）×当日成交均价（成交额÷成交量，元）。估算值不代表国家队实际交易金额；缺失金额显示“—”，不按零计算。历史区间按已有日期记录展示，可能存在缺失交易日。</p>
     <div class="shell footer-inner">
       <p>本页面仅用于份额数据监测，不构成投资建议。</p>
       <p id="footerSource">当前数据来源：读取中</p>
@@ -1099,6 +1111,8 @@
           code: raw.code,
           name: raw.name,
           change,
+          amount: raw.price_status === "ok" ? toFiniteNumber(raw.net_change_100m_yuan) : null,
+          avgPrice: toFiniteNumber(raw.avg_price_yuan),
           balance,
           prevDate: prevDateValid ? raw.prev_date : "",
           prevBalance,
@@ -1182,7 +1196,7 @@
       const rows = latestRows();
       const byCode = new Map(rows.map(record => [record.code, record]));
       const missing = ETF_ORDER.filter(code => !byCode.has(code));
-      const abnormal = rows.filter(record => record.status.toLowerCase() !== "ok");
+      const abnormal = rows.filter(record => record.status.toLowerCase() !== "ok" || record.amount === null);
       const latestUpdated = state.records.reduce((best, record) => {
         return (record.updatedTime ?? 0) > (best?.updatedTime ?? 0) ? record : best;
       }, null);
@@ -1215,7 +1229,9 @@
       el.recordStateSub.textContent = recordSub;
       el.topStatusText.textContent = recordLabel;
       el.topStatusMarker.classList.toggle("warning", warning);
-      el.latestSectionNote.textContent = `数据日期 ${formatDate(latest)} · 每只ETF独立展示`;
+      const completeAmount = ETF_ORDER.every(code => Number.isFinite(byCode.get(code)?.amount));
+      const totalAmount = completeAmount ? rows.reduce((sum, r) => sum + r.amount, 0) : null;
+      el.latestSectionNote.textContent = `数据日期 ${formatDate(latest)} · 估算净增减金额合计：${completeAmount ? formatNumber(totalAmount, true) + ' 亿元' : '数据不完整，暂不合计'}`;
       el.footerSource.textContent = `当前数据来源：${state.sourceMode === "backend" ? "后台CSV" : "内嵌备用数据"} · ${friendlySource(latestUpdated?.source)}`;
     }
 
@@ -1253,6 +1269,8 @@
             </div>
             <div class="change-number ${directionClass}">${formatNumber(record.change, true)}</div>
             <div class="change-unit">亿份 · 份额变化</div>
+            <div class="amount-number ${record.amount > 0 ? 'positive-text' : 'negative-text'}">${formatNumber(record.amount, true)}</div>
+            <div class="change-unit">亿元 · 估算净增减金额</div>
             <h3 class="etf-name">${escapeHTML(record.name)}</h3>
             <div class="card-bottom">
               <div class="balance-label">份额余额</div>
@@ -1287,12 +1305,15 @@
       const dash = [[], [10, 5], [3, 4], [12, 4, 3, 4], [2, 6]];
       const points = ["circle", "rect", "triangle", "rectRot", "crossRot"];
       const isBalance = state.metric === "balance";
+      const isAmount = state.metric === "amount";
+      const metricLabel = isAmount ? "估算净增减金额" : isBalance ? "份额余额" : "份额变化";
+      const metricUnit = isAmount ? "亿元" : "亿份";
       const chartType = isBalance ? "line" : "bar";
 
       const datasets = ETF_ORDER.map((code, index) => {
         const values = dates.map(date => {
           const record = state.records.find(item => item.date === date && item.code === code);
-          return record ? (isBalance ? record.balance : record.change) : null;
+          return record ? (isAmount ? record.amount : isBalance ? record.balance : record.change) : null;
         });
         const base = {
           label: code,
@@ -1353,7 +1374,7 @@
                   const name = record?.name || ETF_FALLBACK_NAMES[context.dataset.label] || "";
                   const value = context.parsed.y;
                   const formatted = isBalance ? formatNumber(value) : formatNumber(value, true);
-                  return `${context.dataset.label} ${name}：${formatted} 亿份`;
+                  return `${context.dataset.label} ${name}：${formatted} ${metricUnit}`;
                 }
               }
             }
@@ -1377,7 +1398,7 @@
               border: { display: false },
               title: {
                 display: true,
-                text: isBalance ? "份额余额 / 亿份" : "份额变化 / 亿份",
+                text: `${metricLabel} / ${metricUnit}`,
                 color: "#6e6e73",
                 font: { size: 11 }
               }
@@ -1388,7 +1409,7 @@
 
       document.getElementById("historyChart").setAttribute(
         "aria-label",
-        `${ETF_ORDER.length}只ETF最近${state.range === "all" ? "全部" : state.range + "个工作日"}的${isBalance ? "份额余额" : "份额变化"}图`
+        `${ETF_ORDER.length}只ETF最近${state.range === "all" ? "全部" : state.range + "个工作日"}的${metricLabel}图`
       );
     }
 
@@ -1409,6 +1430,7 @@
 
     function detailHTML(record) {
       return `
+        <div>成交均价：${formatNumber(record.avgPrice)} 元</div>
         <div>前一日期：${escapeHTML(formatDate(record.prevDate))}</div>
         <div>前一日份额余额：${record.prevBalance === null ? "—" : `${formatNumber(record.prevBalance)} 亿份`}</div>
         <div>数据来源：${escapeHTML(record.source || "—")}</div>
@@ -1447,15 +1469,15 @@
     }
 
     function renderMatrixRows(rows) {
-      el.recordsHead.innerHTML = `<tr><th scope="col">日期</th>${ETF_ORDER.map(code => `<th scope="col">${escapeHTML(code)}</th>`).join("")}</tr>`;
+      el.recordsHead.innerHTML = `<tr><th scope="col" rowspan="2">日期</th>${ETF_ORDER.map(code => `<th scope="colgroup" colspan="2">${escapeHTML(code)}</th>`).join("")}</tr><tr>${ETF_ORDER.map(() => '<th scope="col">份额变化/亿份</th><th scope="col">金额变化/亿元</th>').join('')}</tr>`;
       el.recordsBody.innerHTML = rows.map(row => `
         <tr>
           <td class="num"><strong>${escapeHTML(formatDate(row.date))}</strong></td>
           ${ETF_ORDER.map(code => {
             const record = row.records.get(code);
-            if (!record) return '<td class="num muted" aria-label="数据缺失">—</td>';
+            if (!record) return '<td class="num muted" aria-label="数据缺失">—</td><td class="num muted">—</td>';
             const valueClass = record.change > 0 ? "positive-text" : "negative-text";
-            return `<td class="num ${valueClass}">${formatNumber(record.change, true)}</td>`;
+            return `<td class="num ${valueClass}">${formatNumber(record.change, true)}</td><td class="num ${record.amount > 0 ? 'positive-text' : 'negative-text'}">${formatNumber(record.amount, true)}</td>`;
           }).join("")}
         </tr>`).join("");
     }
@@ -1463,7 +1485,7 @@
     function renderDetailedRows(records) {
       el.recordsHead.innerHTML = `<tr>
         <th scope="col">日期</th><th scope="col">ETF代码</th><th scope="col">名称</th>
-        <th scope="col">份额变化/亿份</th><th scope="col">份额余额/亿份</th>
+        <th scope="col">份额变化/亿份</th><th scope="col">估算净增减金额/亿元</th><th scope="col">份额余额/亿份</th>
         <th scope="col">状态</th><th scope="col">数据详情</th>
       </tr>`;
 
@@ -1474,6 +1496,7 @@
           <td><strong>${escapeHTML(record.code)}</strong></td>
           <td>${escapeHTML(record.name)}</td>
           <td class="num ${changeClass}">${formatNumber(record.change, true)}</td>
+          <td class="num ${record.amount > 0 ? 'positive-text' : 'negative-text'}">${formatNumber(record.amount, true)}</td>
           <td class="num">${formatNumber(record.balance)}</td>
           <td class="muted">${escapeHTML(record.status)}</td>
           <td><details class="data-details"><summary>查看</summary><div class="detail-panel">${detailHTML(record)}</div></details></td>
@@ -1487,6 +1510,7 @@
             <thead><tr>
               <th scope="col" class="mobile-date-column">日期</th>
               <th scope="col" class="mobile-change-column">份额变化/亿份</th>
+              <th scope="col">估算净增减金额/亿元</th>
               <th scope="col">份额余额/亿份</th>
               <th scope="col">状态</th>
               <th scope="col">前一工作日</th>
@@ -1499,6 +1523,7 @@
               return `<tr>
                 <td class="num"><time datetime="${escapeHTML(record.date)}">${escapeHTML(formatDate(record.date))}</time></td>
                 <td class="mobile-history-change num ${changeClass}">${formatNumber(record.change, true)}</td>
+                <td class="num ${record.amount > 0 ? 'positive-text' : 'negative-text'}">${formatNumber(record.amount, true)}</td>
                 <td class="num">${formatNumber(record.balance)}</td>
                 <td>${escapeHTML(record.status)}</td>
                 <td class="num">${escapeHTML(formatDate(record.prevDate))}</td>
@@ -1526,7 +1551,7 @@
       el.mobileRecords.hidden = !hasRecords || isMatrix;
       el.tableShell.classList.toggle("matrix-mode", isMatrix);
       el.recordsTable.classList.toggle("matrix-table", isMatrix);
-      el.recordsViewTitle.textContent = isMatrix ? "工作日份额变化（亿份）" : `${state.etfFilter} 详细历史数据`;
+      el.recordsViewTitle.textContent = isMatrix ? "工作日份额变化（亿份）与估算净增减金额（亿元）" : `${state.etfFilter} 详细历史数据`;
 
       if (isMatrix) {
         el.mobileRecords.innerHTML = "";
