@@ -1,0 +1,2 @@
+# Public data is verified byte for byte against the collector snapshot.
+data/** -text
