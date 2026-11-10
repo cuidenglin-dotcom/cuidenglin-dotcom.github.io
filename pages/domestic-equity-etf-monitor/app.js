@@ -18,7 +18,7 @@
   function summary() { return state.summaries.find(s => s.date === state.date); }
   function updateSummary() {
     const s = summary();
-    text($('amount'), amount(s.estimated_net_100m_yuan)); color($('amount'), s.estimated_net_100m_yuan);
+    text($('amount'), amount(s.estimated_net_100m_yuan, 6)); color($('amount'), s.estimated_net_100m_yuan);
     text($('total-label'), totalLabel(s));
     if (!daily) {
       for (const [id, key] of [['listed', 'listed_etf_count'], ['valid', 'valid_amount_count'], ['exception-count', 'exception_count']]) {
