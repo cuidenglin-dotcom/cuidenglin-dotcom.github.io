@@ -26,7 +26,7 @@
       }
     }
     const n = number(s.exception_count);
-    text($('notice'), s.complete_total ? `${s.date} · 数据完整，金额为所纳入 ETF 的完整合计。` : `${s.date} · ${n === null ? '存在' : n + ' 条'}异常记录，金额为有效样本小计。`);
+    text($('notice'), s.complete_total ? `${s.date} · 数据完整，金额为所纳入 ETF 的完整合计。` : `${s.date} · 当日 ETF 总数：${s.listed_etf_count}；有效样本：${s.valid_amount_count}；异常样本：${s.exception_count}。有效样本估算净增减：${amount(s.estimated_net_100m_yuan, 6)} 亿元。金额为有效样本小计，不是全市场合计。`);
   }
   function renderRanks() {
     for (const [id, sign] of [['top', 1], ['bottom', -1]]) {
